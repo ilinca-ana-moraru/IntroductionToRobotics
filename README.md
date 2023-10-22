@@ -12,7 +12,7 @@ Use a separate potentiometer for controlling each color of the RGB LED: Red, Gre
 
 ### Photo
 
-https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/tema2/RGB%20photo.jpeg
+![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/tema2/RGB%20photo.jpeg)
 
 ### Video
 https://youtube.com/shorts/oJRcK_7D9mI?si=N4qC495yyYWKMDAx
