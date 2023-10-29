@@ -1,4 +1,3 @@
-
 #define RedInputPin  A0
 #define GreenInputPin  A1
 #define BlueInputPin  A2
@@ -6,6 +5,11 @@
 #define RedLedPin 6
 #define GreenLedPin 5
 #define BlueLedPin 3
+
+#define MaxInputVal 1023
+#define MinInputVal 0
+#define MaxLedIntensity 255
+#define MinLedIntensity 0
 
 
 float RedInputValue = 0.0;
@@ -34,9 +38,9 @@ void loop() {
     GreenInputValue = analogRead(GreenInputPin);
     BlueInputValue = analogRead(BlueInputPin);
   // print out the value you read:
-    RedValue = map(RedInputValue, 0, 1023, 0, 255);
-    GreenValue = map(GreenInputValue, 0, 1023, 0, 255);
-    BlueValue = map(BlueInputValue, 0, 1023, 0, 255);
+    RedValue = map(RedInputValue, MinInputVal, MaxInputVal, MinLedIntensity, MaxLedIntensity);
+    GreenValue = map(GreenInputValue, MinInputVal, MaxInputVal, MinLedIntensity, MaxLedIntensity);
+    BlueValue = map(BlueInputValue, MinInputVal, MaxInputVal, MinLedIntensity, MaxLedIntensity);
 
     Serial.println(GreenValue);
   analogWrite(RedLedPin, RedValue);
