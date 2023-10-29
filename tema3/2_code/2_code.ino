@@ -6,12 +6,20 @@
 #define led1Pin 2
 #define led2Pin 3
 #define led3Pin 4
+
 #define blinkingLedPin 5
 
+#define buzzerPin 12
+unsigned int buzzerToneClosingDoors = 300;
+unsigned int buzzerToneArriving = 500;
+
+unsigned int toneDuration = 1000;
+
 #define debounceTime 50
-#define blinkingDuration 20
-#define showCurrentFloorLedDuration 1000
+#define blinkingDuration 30
+#define showCurrentFloorLedDuration 3000
 #define travelToNextFloorDuration 2000
+
 byte is1FloorCalling = 0;
 byte is2FloorCalling = 0;
 byte is3FloorCalling = 0;
@@ -27,6 +35,7 @@ byte previous2Reading = 0;
 byte previous3Reading = 0;
 
 
+unsigned long currentMillis = 0;
 unsigned long previousMillis = 0;
 unsigned long previousMillisBlinking = 0;
 int currentFloor = 1;
@@ -84,7 +93,7 @@ int readButtonValue(int buttonPin,byte previousReading){
 
 void callLift(int floorToAriveAt){
 
-  updateLeds();
+  byte doorsWereClosed = 0;
 
   if(floorToAriveAt == currentFloor)
     return;
@@ -92,28 +101,79 @@ void callLift(int floorToAriveAt){
   while(floorToAriveAt - currentFloor != 0){
     int lastFloor = currentFloor;
 
-    showCurrentFloor();
+    // acum plecam, trebuie sa luminam becul si sa facem zgomot in acelasi timp, apoi blinking
+    // do once
+    if(doorsWereClosed == 0){
+      tone(buzzerPin, buzzerToneClosingDoors, toneDuration);
+      unsigned long previousMillis = millis();
+      currentMillis = millis();
+      while(currentMillis - previousMillis <= toneDuration){
+        // s a terminat timpul de inchis usile
+        currentMillis = millis();
+      } 
 
-    currentFloor = 0;
-    updateLeds(); 
-    //blinking 
-    for(int i = 1; i <= travelToNextFloorDuration/blinkingDuration; i++)
-      LiftIsTravelingLedBlink();
-    
-    //change to next floor
-    currentFloor = lastFloor;
+      doorsWereClosed = 1;
+      currentFloor = 0;
+      updateLeds(); 
+      //blinking 
+
+      for(int i = 1; i <= travelToNextFloorDuration/blinkingDuration; i++){
+        tone(buzzerPin, 220, travelToNextFloorDuration/blinkingDuration);
+        LiftIsTravelingLedBlink();
+      }  
+      blinkingLedValue = LOW;
+      digitalWrite(blinkingLedPin, blinkingLedValue);
+
+
+      //change to next floor
+      currentFloor = lastFloor;
       if(floorToAriveAt - currentFloor > 0)
         currentFloor += 1;
       else
         currentFloor -= 1;
-      
+    
       updateLeds();
-      //in case the new floor is intermediary, make sure the led is on for the time showCurrentFloorLedDuration is set
-      showCurrentFloor();
-
-      
     }
+    // rest of floors
+    else{
+      // value for in between floors
+      currentFloor = 0;
+      updateLeds(); 
+      //blinking 
+      for(int i = 1; i <= travelToNextFloorDuration/blinkingDuration; i++){
+        LiftIsTravelingLedBlink();
+        tone(buzzerPin, 220, travelToNextFloorDuration/blinkingDuration); 
+      }
+      blinkingLedValue = LOW;
+      digitalWrite(blinkingLedPin, blinkingLedValue);
+  
+      //change to next floor
+      currentFloor = lastFloor;
+      if(floorToAriveAt - currentFloor > 0)
+        currentFloor += 1;
+      else
+        currentFloor -= 1;
+    
+      updateLeds();
+    }
+
+      //in case the new floor is intermediary, make sure the led is on for the time showCurrentFloorLedDuration is set
+
+      if(currentFloor != floorToAriveAt){
+          unsigned long previousMillis = millis();
+          currentMillis = millis();
+          while(currentMillis - previousMillis <= showCurrentFloorLedDuration){
+            tone(buzzerPin, 220, showCurrentFloorLedDuration); 
+            currentMillis = millis();
+            LiftIsTravelingLedBlink();
+        } 
+      
+      }
+
+      if(currentFloor == floorToAriveAt)
+        tone(buzzerPin, buzzerToneArriving, toneDuration);
   }
+}  
 
 
 void updateLeds(){
@@ -161,9 +221,8 @@ void showCurrentFloor(){
       // s a terminat timpul de afisat etajul
       previousMillis = currentMillis;
 
-      
       }
     else
-    showCurrentFloor();
+      showCurrentFloor();
 }
 
