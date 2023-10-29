@@ -88,37 +88,34 @@ void callLift(int floorToAriveAt){
 
   if(floorToAriveAt == currentFloor)
     return;
-  
-  int lastFloor = currentFloor;
 
   while(floorToAriveAt - currentFloor != 0){
     int lastFloor = currentFloor;
 
-  unsigned long currentMillis = millis();
-    if(currentMillis - previousMillis >= showCurrentFloorLedDuration){
-      // s a terminat timpul de afisat etajul
-      previousMillis = currentMillis;
+    showCurrentFloor();
 
-      currentFloor = 0;
-      updateLeds(); 
-      //blinking 
-      for(int i = 1; i <= travelToNextFloorDuration/blinkingDuration; i++)
-        LiftIsTravelingLedBlink();
-      
-      currentFloor = lastFloor;
-      
+    currentFloor = 0;
+    updateLeds(); 
+    //blinking 
+    for(int i = 1; i <= travelToNextFloorDuration/blinkingDuration; i++)
+      LiftIsTravelingLedBlink();
+    
+    //change to next floor
+    currentFloor = lastFloor;
       if(floorToAriveAt - currentFloor > 0)
         currentFloor += 1;
       else
         currentFloor -= 1;
       
       updateLeds();
+      //in case the new floor is intermediary, make sure the led is on for the time showCurrentFloorLedDuration is set
+      showCurrentFloor();
 
       
     }
   }
 
-}
+
 void updateLeds(){
   if(currentFloor == 1)
     button1Value = HIGH;
@@ -157,4 +154,16 @@ void LiftIsTravelingLedBlink(){
   else LiftIsTravelingLedBlink();
 }
 
+void showCurrentFloor(){
+
+  unsigned long currentMillis = millis();
+    if(currentMillis - previousMillis >= showCurrentFloorLedDuration){
+      // s a terminat timpul de afisat etajul
+      previousMillis = currentMillis;
+
+      
+      }
+    else
+    showCurrentFloor();
+}
 
