@@ -18,12 +18,12 @@ const int pinDP = 4;
  
 // declare global variables/values used for making current segment blink
 unsigned long lastTimeCheckForBlinking = millis();
-#define BLINKINGPERIOD  500
+#define BLINKING_PERIOD  500
 
 // declare global variables/values for measuring the duration of the button press of the joystick
 #define DEBOUNCE_TIME 40000
-#define MINCLICKTIMESELECT 50000
-#define MINCLICKTIMERESET  500000
+#define MIN_CLICK_TIME_SELECT 50000
+#define MIN_CLICK_TIME_RESET  500000
 unsigned long clickDuration = 0;
 bool swState = LOW;
 unsigned long startPressingButtonTime;
@@ -36,8 +36,8 @@ bool pressState = RISING;
 int xValue = 0;
 int yValue = 0;
 bool joyMoved = false;
-#define MINTHRESHOLD  300
-#define MAXTHRESHOLD  700
+#define MIN_THRESHOLD  300
+#define MAX_THRESHOLD  700
 
 // declare the datatype for segments
 typedef struct segmentDatatype{
@@ -104,34 +104,34 @@ void loop() {
   // no need to change the current segment
 
   //left direction
-  if (xValue < MINTHRESHOLD && joyMoved == false && currentSegment->left != 0) {
+  if (xValue < MIN_THRESHOLD && joyMoved == false && currentSegment->left != 0) {
     joyMoved = true;
     currentSegment = currentSegment->left;
   }
   
   //right direction
-  if (xValue > MAXTHRESHOLD && joyMoved == false && currentSegment->right != 0) {
+  if (xValue > MAX_THRESHOLD && joyMoved == false && currentSegment->right != 0) {
     joyMoved = true;
     currentSegment = currentSegment->right;
 
   }
   
   //up direction
-  if (yValue < MINTHRESHOLD && joyMoved == false && currentSegment->up != 0) {
+  if (yValue < MIN_THRESHOLD && joyMoved == false && currentSegment->up != 0) {
     joyMoved = true;
     currentSegment = currentSegment->up;
 
   }
 
   //down direction
-  if (yValue > MAXTHRESHOLD && joyMoved == false && currentSegment->down != 0) {
+  if (yValue > MAX_THRESHOLD && joyMoved == false && currentSegment->down != 0) {
     joyMoved = true;
     currentSegment = currentSegment->down;
 
   }
 
   //forcing user to return joystick to original position, otherwise, next moves will produce no efect 
-  if (xValue >= MINTHRESHOLD && xValue <= MAXTHRESHOLD && yValue >= MINTHRESHOLD && yValue <= MAXTHRESHOLD) {
+  if (xValue >= MIN_THRESHOLD && xValue <= MAX_THRESHOLD && yValue >= MIN_THRESHOLD && yValue <= MAX_THRESHOLD) {
     joyMoved = false;
   }
 }
@@ -175,10 +175,10 @@ void initSegments(){
 }
 
 
-// function makes the current segment blink by changing the state after "BLINKINGPERIOD" has passed
+// function makes the current segment blink by changing the state after "BLINKING_PERIOD" has passed
 // the output is then changed based on the current segment's state  
 void blink(){
-  if(millis() - lastTimeCheckForBlinking > BLINKINGPERIOD){
+  if(millis() - lastTimeCheckForBlinking > BLINKING_PERIOD){
     currentSegmentState = !currentSegmentState;
     lastTimeCheckForBlinking = millis();
   }
@@ -199,7 +199,7 @@ void updateLeds(){
 
 // checks if the joystick is at the neutral position for the axis
 bool neutralPosition(int axis){
-  if(axis >= MINTHRESHOLD  && axis <= MAXTHRESHOLD)
+  if(axis >= MIN_THRESHOLD  && axis <= MAX_THRESHOLD)
     return true;
   return false;
 }
@@ -223,12 +223,12 @@ void joystickPressButtonChange(){
     Serial.print("\n");
     Serial.print("Sfarsit\n");
     Serial.print("\n");
-    if(clickDuration >= MINCLICKTIMESELECT && clickDuration < MINCLICKTIMERESET){
+    if(clickDuration >= MIN_CLICK_TIME_SELECT && clickDuration < MIN_CLICK_TIME_RESET){
       Serial.print("Am intrat pe select\n");
       select();
     }
 
-    else if(clickDuration >= MINCLICKTIMERESET){
+    else if(clickDuration >= MIN_CLICK_TIME_RESET){
       Serial.print("Am intrat pe reset\n");
       reset();
     }
