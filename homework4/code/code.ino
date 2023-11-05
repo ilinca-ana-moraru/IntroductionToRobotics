@@ -14,7 +14,7 @@ const int pinG = 5;
 const int pinDP = 4;
 
 // declare number of segments
-#define SEGSIZE  8
+#define SEG_SIZE  8
  
 // declare global variables/values used for making current segment blink
 unsigned long lastTimeCheckForBlinking = millis();
@@ -51,7 +51,7 @@ typedef struct segmentDatatype{
 };
 
 // declare the segments
-segmentDatatype segments[SEGSIZE] = {
+segmentDatatype segments[SEG_SIZE] = {
   {0, pinA, 0, 0, 0, 0},
   {0, pinB, 0, 0, 0, 0},
   {0, pinC, 0, 0, 0, 0},
@@ -74,7 +74,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  for (int i = 0; i < SEGSIZE; i++) {
+  for (int i = 0; i < SEG_SIZE; i++) {
     pinMode(segments[i].pin, OUTPUT);
   }
 
@@ -188,7 +188,7 @@ void blink(){
 // function makes the segments light or not based on the "selected" atribute 
 // and the current segment based on the state which is changing in order to blink
 void updateLeds(){
-  for(int i = 0; i < SEGSIZE; i++){
+  for(int i = 0; i < SEG_SIZE; i++){
     if(&segments[i] != currentSegment){
       digitalWrite(segments[i].pin, segments[i].selected);
     }
@@ -247,7 +247,7 @@ void select(){
 
 // function turns off all leds and resets the current segment as the DP segment
 void reset(){
-  for(int i = 0; i < SEGSIZE; i++){
+  for(int i = 0; i < SEG_SIZE; i++){
     segments[i].selected = LOW;
   }
   currentSegment->selected = LOW;
