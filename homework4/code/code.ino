@@ -124,9 +124,9 @@ void loop() {
   }
 
   //down direction
-    if (yValue > MAXTHRESHOLD && joyMoved == false && currentSegment->down != 0) {
-      joyMoved = true;
-      currentSegment = currentSegment->down;
+  if (yValue > MAXTHRESHOLD && joyMoved == false && currentSegment->down != 0) {
+    joyMoved = true;
+    currentSegment = currentSegment->down;
 
   }
 
@@ -238,7 +238,7 @@ void joystickPressButtonChange(){
 }
 
 
-// function makes the selected segment turn on
+// function makes the selected segment change state
 void select(){
   currentSegment->selected = !currentSegment->selected;
   updateLeds();
