@@ -12,34 +12,36 @@ const int pinE = 7;
 const int pinF = 6;
 const int pinG = 5;
 const int pinDP = 4;
-const int NA = -1;
 
-const int segSize = 8;
+// declare number of segments
+#define SEGSIZE  8
  
+// declare global variables/values used for making current segment blink
 unsigned long lastTimeCheckForBlinking = millis();
-const int blinkingPeriod = 500;
+#define BLINKINGPERIOD  500
 
-const int minSelectClickingTime = 1000000 * 0.1;
-const int minResetClickingTime = 1000000 * 0.5;
-
-byte swState = LOW;
-byte lastSwState = LOW;
+// declare global variables/values for measuring the duration of the button press of the joystick
+#define DEBOUNCE_TIME 40000
+#define MINCLICKTIMESELECT 50000
+#define MINCLICKTIMERESET  500000
+unsigned long clickDuration = 0;
+bool swState = LOW;
 unsigned long startPressingButtonTime;
+#define RISING 1
+#define FALLING 0
+unsigned long debounce = 0;
+bool pressState = RISING; 
 
+//declare global variables/values for measuring the movement of the joystick on the 2 axis
 int xValue = 0;
 int yValue = 0;
 bool joyMoved = false;
-int minThreshold = 400;
-int maxThreshold = 600;
+#define MINTHRESHOLD  300
+#define MAXTHRESHOLD  700
 
-int segments[segSize] = { 
-  pinA, pinB, pinC, pinD, pinE, pinF, pinG, pinDP
-};
-
-
-
+// declare the datatype for segments
 typedef struct segmentDatatype{
-  bool state;
+  bool selected;
   int pin;
   segmentDatatype* up;
   segmentDatatype* down;
@@ -48,51 +50,23 @@ typedef struct segmentDatatype{
 
 };
 
-  segmentDatatype segmentA = {0, pinA, 0, 0, 0, 0};
-  segmentDatatype segmentB = {0, pinB, 0, 0, 0, 0};
-  segmentDatatype segmentC = {0, pinC, 0, 0, 0, 0};
-  segmentDatatype segmentD = {0, pinD, 0, 0, 0, 0};
-  segmentDatatype segmentE = {0, pinE, 0, 0, 0, 0};
-  segmentDatatype segmentF = {0, pinF, 0, 0, 0, 0};
-  segmentDatatype segmentG = {0, pinG, 0, 0, 0, 0};
-  segmentDatatype segmentDP = {0, pinDP, 0, 0, 0, 0};
-  segmentDatatype segmentNA;
+// declare the segments
+segmentDatatype segments[SEGSIZE] = {
+  {0, pinA, 0, 0, 0, 0},
+  {0, pinB, 0, 0, 0, 0},
+  {0, pinC, 0, 0, 0, 0},
+  {0, pinD, 0, 0, 0, 0},
+  {0, pinE, 0, 0, 0, 0},
+  {0, pinF, 0, 0, 0, 0},
+  {0, pinG, 0, 0, 0, 0},
+  {0, pinDP, 0, 0, 0, 0}
+};
+
+// declare global variables for the current segment
+segmentDatatype *currentSegment;
+bool currentSegmentState;
 
 
-  segmentDatatype *currentSegment;
-
-
-void joystickPressButtonChange(){
-  swState = !digitalRead(pinSW);
-  if(swState==1){
-    startPressingButtonTime = micros();
-  }
-  else{
-    unsigned long clickDuration = micros() - startPressingButtonTime;
-    if(clickDuration > minSelectClickingTime && clickDuration < minResetClickingTime){
-      select();
-    }
-    else if( clickDuration >= minResetClickingTime){
-      reset();
-    }
-  }
-}
-
-void select(){
-  currentSegment->state = HIGH;
-}
-
-void reset(){
-  segmentA.state = LOW;
-  segmentB.state = LOW;
-  segmentC.state = LOW;
-  segmentD.state = LOW;
-  segmentE.state = LOW;
-  segmentF.state = LOW;
-  segmentG.state = LOW;
-  *currentSegment = segmentDP;
-
-}
 
 void setup() {
 
@@ -100,8 +74,8 @@ void setup() {
 
   Serial.begin(115200);
 
-  for (int i = 0; i < segSize; i++) {
-    pinMode(segments[i], OUTPUT);
+  for (int i = 0; i < SEGSIZE; i++) {
+    pinMode(segments[i].pin, OUTPUT);
   }
 
   pinMode(pinX, INPUT);
@@ -115,119 +89,168 @@ void setup() {
 
 void loop() {
   
+  //read the values of the joystick throughout the program
   xValue = analogRead(pinX);
   yValue = analogRead(pinY);
   
+  // make the current led blink and the selected segments light throughout the program 
   blink();
   updateLeds();
 
 
-//left
-  if (xValue < minThreshold && neutralPosition(yValue) && joyMoved == false && currentSegment->left !=&segmentNA) {
-    changeCurrentSegment();
+  // if movement is detected, the current segment's value changes
+  // joymoved is checked to be false to make sure the joystick was returned to netural position
+  // the neighbour that corresponds to the direction detected needs to be other than 0, otherwise there is
+  // no need to change the current segment
+
+  //left direction
+  if (xValue < MINTHRESHOLD && joyMoved == false && currentSegment->left != 0) {
+    joyMoved = true;
     currentSegment = currentSegment->left;
   }
-//right
-  if (xValue > maxThreshold && neutralPosition(yValue) && joyMoved == false && currentSegment->right !=&segmentNA) {
-    changeCurrentSegment();
+  
+  //right direction
+  if (xValue > MAXTHRESHOLD && joyMoved == false && currentSegment->right != 0) {
+    joyMoved = true;
     currentSegment = currentSegment->right;
+
   }
-//up
-    if (yValue < minThreshold && neutralPosition(xValue) && joyMoved == false && currentSegment->up !=&segmentNA) {
-      changeCurrentSegment();
-      currentSegment = currentSegment->up;
-  }
-//down
-    if (yValue > maxThreshold && neutralPosition(xValue) && joyMoved == false && currentSegment->down !=&segmentNA) {
-      changeCurrentSegment();
-      currentSegment = currentSegment->down;
+  
+  //up direction
+  if (yValue < MINTHRESHOLD && joyMoved == false && currentSegment->up != 0) {
+    joyMoved = true;
+    currentSegment = currentSegment->up;
+
   }
 
-//forcing user to return joystick to original position 
-  if (xValue >= minThreshold && xValue <= maxThreshold && yValue >= minThreshold && yValue <= maxThreshold) {
+  //down direction
+    if (yValue > MAXTHRESHOLD && joyMoved == false && currentSegment->down != 0) {
+      joyMoved = true;
+      currentSegment = currentSegment->down;
+
+  }
+
+  //forcing user to return joystick to original position, otherwise, next moves will produce no efect 
+  if (xValue >= MINTHRESHOLD && xValue <= MAXTHRESHOLD && yValue >= MINTHRESHOLD && yValue <= MAXTHRESHOLD) {
     joyMoved = false;
   }
-  
-  
-
 }
 
+
+
+// initSegments initialises all neighbours for each segment and the current segment as the DP segment
+void initSegments(){
+  segments[0].down = &segments[6];
+  segments[0].left = &segments[5];
+  segments[0].right = &segments[1];
+
+  segments[1].up = &segments[0];
+  segments[1].down = &segments[6];
+  segments[1].left = &segments[5];
+
+  segments[2].up = &segments[6];
+  segments[2].down = &segments[3];
+  segments[2].left = &segments[4];
+  segments[2].right = &segments[7];
+
+  segments[3].up = &segments[6];
+  segments[3].left = &segments[4];
+  segments[3].right = &segments[2];
+
+  segments[4].up = &segments[6];
+  segments[4].down = &segments[3];
+  segments[4].right = &segments[2];
+  
+  segments[5].up = &segments[0];
+  segments[5].down = &segments[6];
+  segments[5].right = &segments[1];
+
+  segments[6].up = &segments[0];
+  segments[6].down = &segments[3];
+
+  segments[7].left = &segments[2];
+
+  currentSegment = &segments[7];
+  currentSegmentState = 1;
+}
+
+
+// function makes the current segment blink by changing the state after "BLINKINGPERIOD" has passed
+// the output is then changed based on the current segment's state  
 void blink(){
-if(millis() - lastTimeCheckForBlinking > blinkingPeriod){
-  currentSegment->state = !currentSegment->state;
-  lastTimeCheckForBlinking = millis();
-  // digitalWrite(currentSegment.pin, currentSegment.state);
-
+  if(millis() - lastTimeCheckForBlinking > BLINKINGPERIOD){
+    currentSegmentState = !currentSegmentState;
+    lastTimeCheckForBlinking = millis();
   }
+
 }
 
-void changeCurrentSegment(){
-  currentSegment->state = LOW;
-  joyMoved = true;
-}
-
+// function makes the segments light or not based on the "selected" atribute 
+// and the current segment based on the state which is changing in order to blink
 void updateLeds(){
-  digitalWrite(segmentA.pin, segmentA.state);
-  digitalWrite(segmentB.pin, segmentB.state);
-  digitalWrite(segmentC.pin, segmentC.state);
-  digitalWrite(segmentD.pin, segmentD.state);
-  digitalWrite(segmentE.pin, segmentE.state);
-  digitalWrite(segmentF.pin, segmentF.state);
-  digitalWrite(segmentG.pin, segmentG.state);
-  digitalWrite(segmentDP.pin, segmentDP.state);
-  // digitalWrite(currentSegment->pin, currentSegment->state);
-}
-
-
-
-  void initSegments()
-  {
-    segmentA.up = &segmentNA;
-    segmentA.down = &segmentG;
-    segmentA.left = &segmentF;
-    segmentA.right = &segmentB;
-
-    segmentB.up = &segmentA;
-    segmentB.down = &segmentG;
-    segmentB.left = &segmentF;
-    segmentB.right = &segmentNA;
-
-    segmentC.up = &segmentG;
-    segmentC.down = &segmentD;
-    segmentC.left = &segmentE;
-    segmentC.right = &segmentDP;
-
-    segmentD.up = &segmentG;
-    segmentD.down = &segmentNA; 
-    segmentD.left = &segmentE;
-    segmentD.right = &segmentC;
-
-    segmentE.up = &segmentG;
-    segmentE.down = &segmentD;
-    segmentE.left = &segmentNA;
-    segmentE.right = &segmentC;
-    
-    segmentF.up = &segmentA;
-    segmentF.down = &segmentG;
-    segmentF.left = &segmentNA;
-    segmentF.right = &segmentB;
-
-    segmentG.up = &segmentA;
-    segmentG.down = &segmentD;
-    segmentG.left = &segmentNA;
-    segmentG.right = &segmentNA;
-
-    segmentDP.up = &segmentNA;
-    segmentDP.down = &segmentNA;
-    segmentDP.left = &segmentC;
-    segmentDP.right = &segmentNA;
-
-    currentSegment = &segmentDP;
-    currentSegment->state = 1;
+  for(int i = 0; i < SEGSIZE; i++){
+    if(&segments[i] != currentSegment){
+      digitalWrite(segments[i].pin, segments[i].selected);
+    }
+    digitalWrite(currentSegment->pin, currentSegmentState);
   }
 
+}
+
+// checks if the joystick is at the neutral position for the axis
 bool neutralPosition(int axis){
-  if(axis >= minThreshold  && axis <= maxThreshold)
+  if(axis >= MINTHRESHOLD  && axis <= MAXTHRESHOLD)
     return true;
   return false;
+}
+
+// the function is called when a change in the joystick pressbutton is detected and based on the 
+// time between press and release it is determined if a segment was selected or a reset was requested
+// and a fuction is called acordingly
+void joystickPressButtonChange(){
+  if(micros() - debounce < DEBOUNCE_TIME){
+    return;
+  }
+
+  if(pressState == RISING){
+    startPressingButtonTime = micros();
+    Serial.print("Inceput\n");
+  }
+  
+  if(pressState == FALLING){
+    clickDuration = micros() - startPressingButtonTime;
+    Serial.print(clickDuration);
+    Serial.print("\n");
+    Serial.print("Sfarsit\n");
+    Serial.print("\n");
+    if(clickDuration >= MINCLICKTIMESELECT && clickDuration < MINCLICKTIMERESET){
+      Serial.print("Am intrat pe select\n");
+      select();
+    }
+
+    else if(clickDuration >= MINCLICKTIMERESET){
+      Serial.print("Am intrat pe reset\n");
+      reset();
+    }
+  }
+  pressState = !pressState;
+  debounce = micros();
+}
+
+
+// function makes the selected segment turn on
+void select(){
+  currentSegment->selected = !currentSegment->selected;
+  updateLeds();
+
+}
+
+// function turns off all leds and resets the current segment as the DP segment
+void reset(){
+  for(int i = 0; i < SEGSIZE; i++){
+    segments[i].selected = LOW;
+  }
+  currentSegment->selected = LOW;
+  currentSegment = &segments[7];
+
 }
