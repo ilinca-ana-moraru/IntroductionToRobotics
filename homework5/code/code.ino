@@ -3,6 +3,8 @@
 // SHCP = [SH]ift register [C]lock [P]in clock
 
 const int startStopPin = 2;
+const byte lapPin = 3;
+const byte resetPin = 8;
 
 const byte latchPin = 11; // STCP to 12 on Shift Register
 const byte clockPin = 10; // SHCP to 11 on Shift Register
@@ -47,10 +49,36 @@ unsigned long lastCountIncrement = 0;
 volatile bool isCounting = 0;
 volatile unsigned long lastStartStopRead = 0;
 #define DEBOUNCE_TIME_MICROS  50000
+volatile bool startStopStateButtonRead = 0;
+
+volatile byte numberOfLaps = 0;
+volatile unsigned long lastLapRead = 0;
+volatile unsigned long lapRead = 0;
+
+volatile int savedLaps[4];
+volatile byte indexOfOLdestLap = 0;
+volatile byte lastLapIndex;
+volatile byte firstLapIndex = 0;
+
+#define LAP_CLICK_MIN_DURATION  50000
+#define CICLE_THROUGH_LAPS 300000
+byte currentDisplayedLapIndex = 0;
+volatile bool lapButtonRead = 0;
+
+
+bool viewingMode = 0;
+#define DEBOUNCE_TIME_MILLIS 500
+unsigned long resetRead;
+byte resetButtonState = 0;
+byte lastResetButtonState = 0;
+
 
 void setup() {
+  Serial.begin(115200);
 
   pinMode(startStopPin, INPUT_PULLUP);
+  pinMode(lapPin, INPUT_PULLUP);
+  pinMode(resetPin, INPUT_PULLUP);
 
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
@@ -61,7 +89,9 @@ void setup() {
     digitalWrite(displayDigits[i], displayOff);
   }
 
-  attachInterrupt(digitalPinToInterrupt(startStopPin),startStop, FALLING);
+  attachInterrupt(digitalPinToInterrupt(startStopPin),startStop, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(lapPin),lap, CHANGE);
+
 }
 
 void loop() {
@@ -75,6 +105,21 @@ void loop() {
       }
     }
   }
+
+   if(millis() - resetRead > DEBOUNCE_TIME_MILLIS){
+    resetRead = millis();
+    resetButtonState = !digitalRead(resetPin);
+    if(resetButtonState != lastResetButtonState){
+      Serial.print("Reset button state: ");
+      Serial.print(resetButtonState);
+      Serial.println();
+          lastResetButtonState = resetButtonState;
+
+        if(resetButtonState == HIGH){
+          reset();
+        }
+    }
+  }
 }
 
 void startStop(){
@@ -82,12 +127,110 @@ void startStop(){
     return;
   }
   lastStartStopRead = micros();
-  isCounting = !isCounting;
-  Serial.print("isCounting: ");
-  Serial.print(isCounting);
-  Serial.println();
-  
+  startStopStateButtonRead = !startStopStateButtonRead;
+  if(startStopStateButtonRead == HIGH){
+    isCounting = !isCounting;
+    Serial.print("isCounting: ");
+    Serial.print(isCounting);
+    Serial.println();
+  }
 }
+
+void lap(){
+  if(micros() - lastLapRead < DEBOUNCE_TIME_MICROS){
+    return;
+  }
+  lastLapRead = micros();
+  lapButtonRead = !lapButtonRead;
+  if(lapButtonRead == HIGH){
+    lapRead = micros();
+  }
+
+  if(lapButtonRead == LOW){
+    unsigned long lapClickDuration = micros() - lapRead;
+
+    Serial.print("Reset lastLapRead\n");
+
+    Serial.print("Am intrat pe lap\n");
+    if( isCounting == 1){
+      // saves laps
+      if(numberOfLaps == 0){
+        numberOfLaps++;
+        savedLaps[0] = currentNumber;
+      }
+
+      else if(numberOfLaps < 4){
+        savedLaps[numberOfLaps] = currentNumber - savedLaps[numberOfLaps - 1];
+        numberOfLaps++;
+        lastLapIndex = numberOfLaps - 1;
+      }
+
+      else{
+        savedLaps[firstLapIndex] = currentNumber - savedLaps[lastLapIndex];
+        firstLapIndex = firstLapIndex == 0 ? 3 : firstLapIndex - 1;
+        lastLapIndex = lastLapIndex == 0 ? 3 : lastLapIndex - 1; 
+      }
+      
+      for(byte i = 0; i <= numberOfLaps - 1; i++){
+        Serial.print("Lap ");
+        Serial.print(i);
+        Serial.print(" : ");
+        Serial.print(savedLaps[i]);
+        Serial.println();
+
+      }
+      Serial.println();
+
+
+    }
+
+    if(viewingMode == 1){
+      Serial.print("Lap click duration: ");
+      Serial.print(lapClickDuration);
+      Serial.println();
+      // if(lapClickDuration >= CICLE_THROUGH_LAPS){
+      //   Serial.print("Cicle \n");
+      // }
+      if(lapClickDuration >= LAP_CLICK_MIN_DURATION && lapClickDuration < CICLE_THROUGH_LAPS){
+        Serial.print("Am intrat pe afisare laps\n");
+        // show 1 lap
+        currentNumber = savedLaps[currentDisplayedLapIndex];
+        // writeNumber(savedLaps[currentDisplayedLapIndex]);
+        currentDisplayedLapIndex = (currentDisplayedLapIndex + 1)% numberOfLaps;
+      }
+    }
+  }
+  
+
+
+
+}
+
+void reset(){
+    Serial.print("Am intrat pe reset\n");
+
+  if( isCounting == 1){
+    return;
+  }
+  if(viewingMode == 0){
+    viewingMode = 1;
+    currentNumber = 0;
+    currentDisplayedLapIndex = 0;
+    Serial.print("Am resetat currentNumber\n");
+    Serial.print("viewingMode: ");
+    Serial.print(viewingMode);
+    Serial.println();
+  }
+  else if(viewingMode == 1){
+    //reset laps, no need to reset actual values, they will not be displayed and possibly overriden 
+    numberOfLaps = 0;
+    currentNumber = 0;
+    Serial.print("Am resetat laps\n");
+  }
+}
+
+
+
 
 
 void writeReg(byte encoding) {
