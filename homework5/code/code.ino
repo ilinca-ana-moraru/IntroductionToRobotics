@@ -51,14 +51,15 @@ volatile unsigned long lastStartStopRead = 0;
 #define DEBOUNCE_TIME_MICROS  50000
 volatile bool startStopStateButtonRead = 0;
 
-volatile byte numberOfLaps = 0;
 volatile unsigned long lastLapRead = 0;
 volatile unsigned long lapRead = 0;
 
+volatile byte numberOfLaps = 0;
 volatile int savedLaps[4];
 volatile byte indexOfOLdestLap = 0;
 volatile byte lastLapIndex;
 volatile byte firstLapIndex = 0;
+unsigned long previousLapMoment = 0;
 
 
 #define LAP_CLICK_MIN_DURATION  50000
@@ -66,7 +67,6 @@ volatile byte firstLapIndex = 0;
 byte currentDisplayedLapIndex = 0;
 volatile bool lapButtonRead = 0;
 volatile bool lapPressHappens = 0;
-volatile unsigned long lapClickDuration = 0;
 volatile bool mightBeAShortPress = 0;
 bool viewingMode = 0;
 #define DEBOUNCE_TIME_MILLIS 500
@@ -77,6 +77,7 @@ byte lastResetButtonState = 0;
 unsigned long timeOfPreviousLapShow = 0;
 
 #define TIME_BETWEEN_SHOWING_LAPS 200000
+
 void setup() {
   Serial.begin(115200);
 
@@ -94,11 +95,12 @@ void setup() {
   }
 
   attachInterrupt(digitalPinToInterrupt(startStopPin),startStop, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(lapPin),lap, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(lapPin),lap, CHANGE);
 
 }
 
 void loop() {
+  // showing the current number and incrementing it if the timer si on
   writeNumber(currentNumber);
   if(isCounting){
     if (millis() - lastCountIncrement > COUNTING_DELAY) {
@@ -110,49 +112,61 @@ void loop() {
     }
   }
 
-  if(isCounting == 0){
+  //debounce for reset button
+  resetButtonState = !digitalRead(resetPin);
+  if(isCounting == 0 && resetButtonState != lastResetButtonState){
     if(millis() - resetRead > DEBOUNCE_TIME_MILLIS){
-    resetRead = millis();
-    resetButtonState = !digitalRead(resetPin);
-    if(resetButtonState != lastResetButtonState){
+      resetRead = millis();
       Serial.print("Reset button state: ");
       Serial.print(resetButtonState);
       Serial.println();
-          lastResetButtonState = resetButtonState;
+      lastResetButtonState = resetButtonState;
 
-        if(resetButtonState == HIGH){
-          reset();
-        }
+      if(resetButtonState == HIGH){
+        reset();
+      }
     }
   }
 
+
+  //check if the lap button is currently pressed and minimum time for a press has passed but not 
+  // enough for a long press needed to cicle through laps check 
+  if(lapPressHappens && (micros() - lapRead) > LAP_CLICK_MIN_DURATION){
+    
+    if(mightBeAShortPress){
+      mightBeAShortPress = 0;
+
+    //if the timer is on, save the lap
+      if(isCounting == 1){
+        saveLap();
+      }
+
+    //if the viewing mode is on, show the first lap
+      if(viewingMode == 1){
+        timeOfPreviousLapShow = micros();
+        Serial.print("Show 1 lap\n");
+        showLap();
+      }
+
+    }
+
+    // if lap press still happens and mightBeAShortPress is false, the first lap was shown and 
+    // now should happen the cicling through laps. If the time between the last shown laps has 
+    // passed, is time to display the next lap
+    if (viewingMode  && mightBeAShortPress == 0){
+      if(micros() - timeOfPreviousLapShow > TIME_BETWEEN_SHOWING_LAPS){
+        Serial.print("Cicle through laps\n");
+        timeOfPreviousLapShow = micros();
+        showLap();
+
+      }
+    }
   }
   
-  if(lapPressHappens && (micros() - lapRead) > LAP_CLICK_MIN_DURATION && micros()- lapRead < CICLE_THROUGH_LAPS && mightBeAShortPress ){
-    mightBeAShortPress = 0;
-    if(isCounting == 1){
-      saveLap();
-    }
-    if(viewingMode == 1){
-      timeOfPreviousLapShow = micros();
-      Serial.print("Show 1 lap\n");
-      showLap();
-
-    }
-  }
-
-  if (viewingMode && lapPressHappens && (micros() - lapRead) > CICLE_THROUGH_LAPS && mightBeAShortPress == 0){
-    if(micros() - timeOfPreviousLapShow > TIME_BETWEEN_SHOWING_LAPS){
-      Serial.print("Cicle through laps\n");
-      timeOfPreviousLapShow = micros();
-      showLap();
-
-    }
-  }
 
 }
 
-
+//debounces the button start/stop and changes the value of isCounting 
 void startStop(){
   if(micros() - lastStartStopRead < DEBOUNCE_TIME_MICROS){
     return;
@@ -160,6 +174,10 @@ void startStop(){
   lastStartStopRead = micros();
   startStopStateButtonRead = !startStopStateButtonRead;
   if(startStopStateButtonRead == HIGH){
+    if(viewingMode == 1){
+      viewingMode = 0;
+      currentNumber = 0;
+    }
     isCounting = !isCounting;
     Serial.print("isCounting: ");
     Serial.print(isCounting);
@@ -167,6 +185,8 @@ void startStop(){
   }
 }
 
+//debounces the lap button and changes the values of lapPressHappens and mightBeAShortPress
+// that have further use in the loop
 void lap(){
   if(micros() - lastLapRead < DEBOUNCE_TIME_MICROS){
     return;
@@ -186,22 +206,24 @@ void lap(){
   }
 }
 
-
+//saves a new lap
 void saveLap(){
-  // saves laps
   if(numberOfLaps == 0){
     numberOfLaps++;
     savedLaps[0] = currentNumber;
+    previousLapMoment = savedLaps[0];
   }
 
   else if(numberOfLaps < 4){
-    savedLaps[numberOfLaps] = currentNumber - savedLaps[numberOfLaps - 1];
+    savedLaps[numberOfLaps] = currentNumber - previousLapMoment;
+    previousLapMoment += savedLaps[numberOfLaps];
     numberOfLaps++;
     lastLapIndex = numberOfLaps - 1;
   }
 
   else{
-    savedLaps[firstLapIndex] = currentNumber - savedLaps[lastLapIndex];
+    savedLaps[firstLapIndex] = currentNumber - previousLapMoment;
+    previousLapMoment += savedLaps[firstLapIndex];
     firstLapIndex = firstLapIndex == 0 ? 3 : firstLapIndex - 1;
     lastLapIndex = lastLapIndex == 0 ? 3 : lastLapIndex - 1; 
   }
@@ -218,6 +240,7 @@ void saveLap(){
 
 }
 
+//displays the next lap
 void showLap(){
   if(numberOfLaps){
     currentNumber = savedLaps[currentDisplayedLapIndex];
@@ -226,7 +249,8 @@ void showLap(){
 
 }
 
-
+//resets either the current number either the laps depending of the state of the viewing mode.
+// if in counting mode, does nothing
 void reset(){
     Serial.print("Am intrat pe reset\n");
 
@@ -236,6 +260,7 @@ void reset(){
   if(viewingMode == 0){
     viewingMode = 1;
     currentNumber = 0;
+    previousLapMoment = 0;
     currentDisplayedLapIndex = 0;
     Serial.print("Am resetat currentNumber\n");
     Serial.print("viewingMode: ");
@@ -246,6 +271,7 @@ void reset(){
     //reset laps, no need to reset actual values, they will not be displayed and possibly overriden 
     numberOfLaps = 0;
     currentNumber = 0;
+    previousLapMoment = 0;
     viewingMode = 0;
     Serial.print("Am resetat laps si viewingMode\n");
   }
@@ -254,23 +280,27 @@ void reset(){
 
 
 
-
+//gives the code for the wished digit to the shift register which than will make the digit show
+// if the display is on
 void writeReg(byte encoding) {
   digitalWrite(latchPin, LOW);
   shiftOut(dataPin, clockPin, MSBFIRST, encoding);
   digitalWrite(latchPin, HIGH);
 }
 
+//gives 0V to the wished display
 void tunOffDisplays() {
   for (byte i = 0; i < displayCount; i++) {
     digitalWrite(displayDigits[i], displayOff);
   }
 }
 
+// gives current to the wished display
 void tunOnDisplay(byte displayNumber) {
   digitalWrite(displayDigits[displayNumber], displayOn);
 }
 
+//decides for each display of the four which digit to write in order to display the wished number
 void writeNumber(unsigned int number) {
   int currentDisplay = 3;
 
@@ -285,7 +315,6 @@ void writeNumber(unsigned int number) {
     tunOffDisplays();
     writeReg(encoding);
     tunOnDisplay(currentDisplay);
-    delay(1);
 
     number /= 10;
     currentDisplay--;
