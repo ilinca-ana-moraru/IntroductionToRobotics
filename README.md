@@ -98,5 +98,13 @@ Use a separate potentiometer for controlling each color of the RGB LED: Red, Gre
 https://youtube.com/shorts/oJRcK_7D9mI?si=N4qC495yyYWKMDAx</details>
 
 
+<details>
+<summary>Homework 1</summary>
+<br>
 
+## Requirments
+
+Create the repo. 
+
+</details>
 
