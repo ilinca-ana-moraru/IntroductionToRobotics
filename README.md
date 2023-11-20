@@ -4,6 +4,26 @@ Introduction to Robotics - weekly homewoks
 This repo will contain my weekly homeworks for my Introduction to Robotics course I'm taking at the Faculty of Mathematics and Computer Science, Univeristy of Bucharest.
 For each homework, I will provide requirements, implementation details, code files, pictures and videos of the setup.
 
+
+https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/homework6/envoirement_monitor.jpeg
+<details>
+<summary> Homework 6
+</summary>
+<br>
+### Requirements
+
+Develop a ”Smart Environment Monitor and Logger” using Arduino. This system will utilize various sensors to gather environmental data, log this data into EEPROM, and provide both visual feedback via an RGB LED and user interaction through a Serial Menu. The project focuses on integrating sensor readings, memory management, Serial Communication and the general objective of building a menu. 
+
+### Photo
+
+![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/homework6/envoirement_monitor.jpeg)
+
+### Video
+
+https://www.youtube.com/watch?v=Y0_TF87Dfe0
+</details>
+
+
 <details>
 <summary> Homework 5
 </summary>
