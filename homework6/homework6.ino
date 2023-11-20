@@ -291,8 +291,7 @@ void chooseFromMainMenu(){
 void sensorSettings(){
 	
   if(currentActionPrinted == 0){
-		// Serial.print("currentActionPrinted: ");
-		// Serial.println(currentActionPrinted);
+
     currentActionPrinted = 1;
     switch (chosenSubmenuFunctionality)
     {
@@ -327,11 +326,11 @@ void sensorSettings(){
       case 1:
 				if(Serial.available() > 0){
 					sensorsSamplingInterval = Serial.parseInt();
-					if(sensorsSamplingInterval < 1 || sensorsSamplingInterval > 100){
-						Serial.print("Value needs to be between 1 and 100.\n");
+					if(sensorsSamplingInterval < 1 || sensorsSamplingInterval > 10){
+						Serial.print(F("Value needs to be between 1 and 10.\n"));
 					}
 					else{
-            Serial.print("Changed sampling interval value to ");
+            Serial.print(F("Changed sampling interval value to "));
             Serial.println(sensorsSamplingInterval);
 						resetToMainMenu();
 					}
@@ -342,10 +341,10 @@ void sensorSettings(){
 				if(Serial.available() > 0){
 					UltrasonicAlertThreshold = Serial.parseInt();
 					if(UltrasonicAlertThreshold < 1 || UltrasonicAlertThreshold > 300){
-						Serial.print("Value needs to be between 1 and 300.\n");
+						Serial.print(F("Value needs to be between 1 and 300.\n"));
 					}
 					else{
-            Serial.print("Changed ultrasonic alert threshold value to ");
+            Serial.print(F("Changed ultrasonic alert threshold value to "));
             Serial.println(UltrasonicAlertThreshold);
 						resetToMainMenu();
 					}
@@ -356,10 +355,10 @@ void sensorSettings(){
 				if(Serial.available() > 0){
 					LDRAlertThreshold = Serial.parseInt();
 					if(LDRAlertThreshold < 1 || LDRAlertThreshold > 100){
-						Serial.print("Value needs to be between 1 and 100.\n");
+						Serial.print(F("Value needs to be between 1 and 100.\n"));
 					}
 					else{
-            Serial.print("Changed LDR alert threshold value to ");
+            Serial.print(F("Changed LDR alert threshold value to "));
             Serial.println(LDRAlertThreshold);
 						resetToMainMenu();
 					}
@@ -380,19 +379,20 @@ void sensorSettings(){
 }
 
 void resetLoggerData(){
+  
   switch(chosenSubmenuFunctionality){
     case 1:
     if(wasAreYouSureAsked == 0){
-      Serial.print("Are you sure?\n");
-      Serial.print("  1.Yes\n");
-      Serial.print("  2.No\n");
+      Serial.print(F("Are you sure?\n"));
+      Serial.print(F("  1.Yes\n"));
+      Serial.print(F("  2.No\n"));
       wasAreYouSureAsked = 1;
     }
     else if(Serial.available()){
       int areYouSureResponse = Serial.parseInt();
       if(areYouSureResponse == 1){
         reset();
-        Serial.println("..Reset...");
+        Serial.println(F("..Reset..."));
       }
       resetToMainMenu();
     }
@@ -403,7 +403,7 @@ void resetLoggerData(){
       break;
 
     default:
-      Serial.print("Wrong input\n");
+      Serial.print(F("Wrong input\n"));
       break;
   }
 }
@@ -413,19 +413,19 @@ void systemStatus(){
     currentActionPrinted = 1;
     switch (chosenSubmenuFunctionality){
     case 1:
-      Serial.print("Current Sensor Readings. Use e to escape.\n");
+      Serial.print(F("Current Sensor Readings. Use e to escape.\n"));
       break;
     
     case 2:
-      Serial.print("Current Sensor Settings\n");
+      Serial.print(F("Current Sensor Settings\n"));
       break;
 
     case 3:
-     Serial.print("Current Sensor Logged Data\n");
+     Serial.print(F("Current Sensor Logged Data\n"));
      break;
 
     case 4:
-      Serial.print("Back\n");
+      Serial.print(F("Back\n"));
       break;
 
     default:
@@ -440,18 +440,18 @@ void systemStatus(){
           potentialEscape = Serial.read();
           if(potentialEscape == 'e' || potentialEscape == 'E'){
             potentialEscape = 0;
-            Serial.print("...Exiting display current readings mode...\n");
+            Serial.print(F("...Exiting display current readings mode...\n"));
             resetToMainMenu();
           }
         }
         break;
 
       case 2:
-        Serial.print("Sampling rate: ");
+        Serial.print(F("Sampling rate: "));
         Serial.println(sensorsSamplingInterval);
-        Serial.print("Distance threshold: ");
+        Serial.print(F("Distance threshold: "));
         Serial.println(UltrasonicAlertThreshold);
-        Serial.print("Luminosity threshold: ");
+        Serial.print(F("Luminosity threshold: "));
         Serial.println(LDRAlertThreshold);
         resetToMainMenu();
         break;
@@ -480,17 +480,17 @@ void RGBControl(){
     switch (chosenSubmenuFunctionality){
     
     case 1:
-      Serial.print("Manual Color Control\n");
-      Serial.print("Type your desired level of brightness on a 1-100 scale for the Red, Green and Blue components.\n");
-      Serial.print("Example: 20 70 45\n");
+      Serial.print(F("Manual Color Control\n"));
+      Serial.print(F("Type your desired level of brightness on a 1-100 scale for the Red, Green and Blue components.\n"));
+      Serial.print(F("Example: 20 70 45\n"));
       break;
     
     case 2:
-      Serial.print("LED: Toggle Automatic ON/OFF\n");
+      Serial.print(F("LED: Toggle Automatic ON/OFF\n"));
       break;
     
     case 3:
-      Serial.print("Back\n");
+      Serial.print(F("Back\n"));
       break;
 
     default:
@@ -510,7 +510,7 @@ void RGBControl(){
         sscanf(manualColorsChar, "%d %d %d", &customRed, &customGreen, &customBlue);
         if(customRed < 1 || customRed > 100 || customGreen < 1 || customGreen > 100 ||
         customBlue < 1 || customBlue > 100){
-          Serial.print("Values need to be between 1 and 100.\n");
+          Serial.print(F("Values need to be between 1 and 100.\n"));
         }
         else{
           customRed = map(customRed, 1, 100, 0, 255);
@@ -525,10 +525,10 @@ void RGBControl(){
     case 2:
       automaticLEDMode = !automaticLEDMode;
       if(automaticLEDMode == 1){
-        Serial.println("Automatic LED Mode ON");
+        Serial.println(F("Automatic LED Mode ON"));
       }
       else{
-        Serial.println("Automatic LED Mode OFF");
+        Serial.println(F("Automatic LED Mode OFF"));
       }
       resetToMainMenu();
       break; 
