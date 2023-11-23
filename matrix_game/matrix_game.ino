@@ -133,7 +133,6 @@ void loop() {
       lastPressState = pressState;
       if(pressState == true){
         putBomb();
-        matrixChanged = true;
 
       }
     }
@@ -260,16 +259,17 @@ void putBomb(){
   bombs[nrOfBombs - 1].state = DROPPED_BOMB;
   bombs[nrOfBombs - 1].bombStart = millis();
   matrix[xPos][yPos] = BOMB;
-  for(int i=0; i< nrOfBombs; i++){
-      Serial.print("bomba nr: ");
-      Serial.print(i);
-      Serial.print(" x: ");
-      Serial.print(bombs[i].x);
-      Serial.print(" y: ");
-      Serial.println(bombs[i].y);
-  }
-      Serial.println("---------");
+  // for(int i=0; i< nrOfBombs; i++){
+  //     Serial.print("bomba nr: ");
+  //     Serial.print(i);
+  //     Serial.print(" x: ");
+  //     Serial.print(bombs[i].x);
+  //     Serial.print(" y: ");
+  //     Serial.println(bombs[i].y);
+  // }
+  //     Serial.println("---------");
 
+  matrixChanged = true;
 
 }
 
@@ -302,21 +302,22 @@ void updateMatrix() {
 
   for (int row = 0; row < matrixSize; row++) {
     for (int col = 0; col < matrixSize; col++) {
-      if(matrix[row][col] == WALL){
-        lc.setLed(0, row, col, 1);
+      if(row == xPos && col ==yPos){
+        lc.setLed(0, xPos, yPos, playerBlinkingState);
       }
-      else if(matrix[row][col] == BOMB){
-        lc.setLed(0, row, col, bombsBlinkingState);
-      }
-      else if(matrix[row][col] == PLAYER){
-        lc.setLed(0, row, col, playerBlinkingState);  // set each led individually
-      }
-      else if(matrix[row][col] == EMPTY_SPACE){
-        lc.setLed(0, row, col, 0);
+      else{
+        if(matrix[row][col] == WALL){
+          lc.setLed(0, row, col, 1);
+        }
+        else if(matrix[row][col] == EMPTY_SPACE){
+          lc.setLed(0, row, col, 0);
+        }
+        else if(matrix[row][col] == BOMB){
+          lc.setLed(0, row, col, bombsBlinkingState);
+        }
       }
     }
   }
-  lc.setLed(0, xPos, yPos, playerBlinkingState);
 
   // for(int i = 0; i< matrixSize; i++){
   //   for(int j = 0; j < matrixSize; j++){
@@ -337,24 +338,24 @@ void updatePositions() {
   xLastPos = xPos;
   yLastPos = yPos;
   // Update xPos based on joystick movement (X-axis)
-  if (xValue > minThreshold) {
+  if (xValue > maxThreshold) {
     if (xPos < matrixSize - 1) {
       xPos++;
     } 
   }
-  if (xValue < maxThreshold) {
+  if (xValue < minThreshold) {
     if (xPos > 0) {
       xPos--;
     }
   }
 
-  if (yValue > maxThreshold) {
+  if (yValue > minThreshold) {
     if (yPos < matrixSize - 1) {
       yPos++;
     } 
   }
   // Update xPos based on joystick movement (Y-axis)
-  if (yValue < minThreshold) {
+  if (yValue < maxThreshold) {
     if (yPos > 0) {
       yPos--;
     }
