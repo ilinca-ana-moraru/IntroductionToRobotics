@@ -1,4 +1,5 @@
 #include "LedControl.h" // Include LedControl library for controlling the LED matrix
+#include "time.h"
 const int dinPin = 12;
 const int clockPin = 11;
 const int loadPin = 10;
@@ -70,7 +71,7 @@ unsigned long bombsLastBlink = 0;
 #define BOMBS_EXPANDING_INTERVAL 1000
 #define BOMBS_DISAPPEARING_INTERVAL 1500
 
-unsigned int randSeed = 10;
+unsigned long randomNumber;
 
 void setup() {
 
@@ -78,8 +79,8 @@ void setup() {
   Serial.begin(115200);
   lc.shutdown(0, false); 
   lc.setIntensity(0, matrixBrightness); 
-  lc.clearDisplay(0); 
-
+  lc.clearDisplay(0);
+  randomSeed(analogRead(pressPin));
   generateMap();
   updateMatrix();
 
@@ -139,150 +140,6 @@ void loop() {
   }
 }
 
-
-unsigned int customRand() {
-    randSeed = randSeed * 1103515245 + 12345;
-    return (randSeed / 536) % 32768;
-}
-
-
-
-void generateMap(){
-  for(int i = 0; i < matrixSize; i++){
-    for(int j = 0; j < matrixSize; j++){
-      int randNumber = customRand()%3;
-      if(randNumber > 0){
-        matrix[i][j] = WALL;
-      }
-    }
-  }
-
-  // if(!((matrix[xPos + 1][yPos] == EMPTY_SPACE && inMatrix(xPos + 1,yPos) && matrix[xPos + 2][yPos] == EMPTY_SPACE && inMatrix(xPos + 2,yPos)) ||
-  // (matrix[xPos][yPos + 1] == EMPTY_SPACE && inMatrix(xPos,yPos + 1) && matrix[xPos][yPos + 2] == EMPTY_SPACE && inMatrix(xPos,yPos + 2)) ||
-  // (matrix[xPos - 1][yPos] == EMPTY_SPACE && inMatrix(xPos - 1,yPos) && matrix[xPos - 2][yPos] == EMPTY_SPACE && inMatrix(xPos - 2,yPos)) ||
-  // (matrix[xPos][yPos - 1] == EMPTY_SPACE && inMatrix(xPos,yPos - 1) && matrix[xPos][yPos - 2] == EMPTY_SPACE && inMatrix(xPos,yPos - 2))
-  //  ))
-
-
-}
-
-
-void deleteBomb(bomb currentBomb) {
-
-  for (int i = 0; i < nrOfBombs - 1; i++) {
-    bombs[i] = bombs[i + 1];
-  }
-  nrOfBombs--;
-  bombs = (bomb*)realloc(bombs, nrOfBombs * sizeof(bomb));
-
-  int i, j;
-
-  i = currentBomb.x - 1;
-  j = currentBomb.y;
-  if(inMatrix(i, j)){
-    matrix[i][j] = EMPTY_SPACE;
-  }
-
-  i = currentBomb.x + 1;
-  j = currentBomb.y;
-  if(inMatrix(i, j)){
-    matrix[i][j] = EMPTY_SPACE;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y - 1;
-  if(inMatrix(i, j)){
-    matrix[i][j] = EMPTY_SPACE;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y + 1;
-  if(inMatrix(i, j)){
-    matrix[i][j] = EMPTY_SPACE;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y;
-  matrix[i][j] = EMPTY_SPACE;
-
-}
-
-void expandBomb(bomb currentBomb){  
-  int i, j;
-
-  i = currentBomb.x - 1;
-  j = currentBomb.y;
-  if(inMatrix(i, j)){
-    matrix[i][j] = BOMB;
-  }
-
-  i = currentBomb.x + 1;
-  j = currentBomb.y;
-  if(inMatrix(i, j)){
-    matrix[i][j] = BOMB;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y - 1;
-  if(inMatrix(i, j)){
-    matrix[i][j] = BOMB;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y + 1;
-  if(inMatrix(i, j)){
-    matrix[i][j] = BOMB;
-  }
-
-  i = currentBomb.x;
-  j = currentBomb.y;
-  if(inMatrix(i, j)){
-    matrix[i][j] = BOMB;
-  }
-
-}
-
-bool inMatrix(byte i, byte j){
-  if(i < 0 || i > matrixSize - 1 || j < 0 || j > matrixSize - 1){
-    return false;
-  }
-  return true;
-}
-
-void putBomb(){
-  Serial.println("am pus bomba");
-  nrOfBombs++;
-  bombs = (bomb*) realloc(bombs, nrOfBombs * sizeof(bomb));
-
-  bombs[nrOfBombs - 1].x = xPos;
-  bombs[nrOfBombs - 1].y = yPos;
-  bombs[nrOfBombs - 1].state = DROPPED_BOMB;
-  bombs[nrOfBombs - 1].bombStart = millis();
-  matrix[xPos][yPos] = BOMB;
-  // for(int i=0; i< nrOfBombs; i++){
-  //     Serial.print("bomba nr: ");
-  //     Serial.print(i);
-  //     Serial.print(" x: ");
-  //     Serial.print(bombs[i].x);
-  //     Serial.print(" y: ");
-  //     Serial.println(bombs[i].y);
-  // }
-  //     Serial.println("---------");
-
-  matrixChanged = true;
-
-}
-
-void bombsBlink(){
-  bombsBlinkingState = !bombsBlinkingState;
-  matrixChanged = true;
-}
-
-void playerBlink(){
-  playerBlinkingState = !playerBlinkingState;
-  matrixChanged = true;
-}
-
 void updateMatrix() {
 
   if(sizeof(bombs) > 0){
@@ -319,15 +176,50 @@ void updateMatrix() {
     }
   }
 
-  // for(int i = 0; i< matrixSize; i++){
-  //   for(int j = 0; j < matrixSize; j++){
-  //     Serial.print(matrix[i][j]);
-  //     Serial.print(" ");
-  //   }
-  //   Serial.println();
-  // }
+}
+
+
+
+void generateMap(){
+  for(int i = 0; i < matrixSize; i++){
+    for(int j = 0; j < matrixSize; j++){
+      randomNumber = random(3);
+        if(randomNumber > 0){
+          matrix[i][j] = WALL;
+        }
+    }
+  }
 
 }
+
+void expandBomb(bomb currentBomb){  
+  for(int i = currentBomb.x - 1; i <= currentBomb.x + 1; i++){
+    for(int j = currentBomb.y - 1; j <= currentBomb.y + 1; j++){
+      if(inMatrix(i, j)){
+        matrix[i][j] = BOMB;
+      }
+    }
+  }
+
+}
+
+void deleteBomb(bomb currentBomb) {
+
+  for (int i = 0; i < nrOfBombs - 1; i++) {
+    bombs[i] = bombs[i + 1];
+  }
+  nrOfBombs--;
+  bombs = (bomb*)realloc(bombs, nrOfBombs * sizeof(bomb));
+
+  for(int i = currentBomb.x - 1; i <= currentBomb.x + 1; i++){
+    for(int j = currentBomb.y - 1; j <= currentBomb.y + 1; j++){
+      if(inMatrix(i, j)){
+        matrix[i][j] = EMPTY_SPACE;
+      }
+    }
+  }
+}
+
 
 
 // Function to read joystick input and update the position of the LED
@@ -349,13 +241,13 @@ void updatePositions() {
     }
   }
 
-  if (yValue > minThreshold) {
+  if (yValue > maxThreshold) {
     if (yPos < matrixSize - 1) {
       yPos++;
     } 
   }
   // Update xPos based on joystick movement (Y-axis)
-  if (yValue < maxThreshold) {
+  if (yValue < minThreshold) {
     if (yPos > 0) {
       yPos--;
     }
@@ -366,4 +258,36 @@ void updatePositions() {
     // matrix[xPos][yPos] = PLAYER;
     matrixChanged = true;
   }  
+}
+
+bool inMatrix(byte i, byte j){
+  if(i < 0 || i > matrixSize - 1 || j < 0 || j > matrixSize - 1){
+    return false;
+  }
+  return true;
+}
+
+void putBomb(){
+  Serial.println("am pus bomba");
+  nrOfBombs++;
+  bombs = (bomb*) realloc(bombs, nrOfBombs * sizeof(bomb));
+
+  bombs[nrOfBombs - 1].x = xPos;
+  bombs[nrOfBombs - 1].y = yPos;
+  bombs[nrOfBombs - 1].state = DROPPED_BOMB;
+  bombs[nrOfBombs - 1].bombStart = millis();
+  matrix[xPos][yPos] = BOMB;
+  matrixChanged = true;
+
+}
+
+
+void bombsBlink(){
+  bombsBlinkingState = !bombsBlinkingState;
+  matrixChanged = true;
+}
+
+void playerBlink(){
+  playerBlinkingState = !playerBlinkingState;
+  matrixChanged = true;
 }
