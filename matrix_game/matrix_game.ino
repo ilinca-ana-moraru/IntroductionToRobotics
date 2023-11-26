@@ -21,21 +21,23 @@ byte matrixBrightness = 2;
 #define SHOWN_BOMB 5
 #define EXPANDED_BOMB 6
 // Variables to track the current and previous positions of the joystick-controlled LED
-byte xPos = 4;
-byte yPos = 4;
+byte defaultXPos = 4;
+byte defaultYPos = 4;
+byte xPos = defaultXPos;
+byte yPos = defaultXPos;
 byte xLastPos = 0;
 byte yLastPos = 0;
 // Thresholds for detecting joystick movement
 const int minThreshold = 312;
 const int maxThreshold = 712;
-
-const byte moveInterval = 150; // Timing variable to control the speed of LED movement
+#define DEFAULT_JOYSTICK 512
+const byte moveInterval = 200; // Timing variable to control the speed of LED movement
 unsigned long long lastMoved = 0; // Tracks the last time the LED moved
 
 const byte matrixSize = 8 ;// Size of the LED matrix
 bool matrixChanged = true; // Flag to track if the matrix display needs updating
 // 2D array representing the state of each LED (on/off) in the matrix
-unsigned long matrix[matrixSize][matrixSize] = {
+byte matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -48,7 +50,7 @@ unsigned long matrix[matrixSize][matrixSize] = {
 
 bool playerBlinkingState = 1;
 unsigned long playerLastBlink = 0;
-#define PLAYER_BLINK_INTERVAL  300
+#define PLAYER_BLINK_INTERVAL  150
 
 //bomb variables
 struct bomb{
@@ -62,16 +64,55 @@ bomb* bombs;
 int nrOfBombs = 0;
 bool lastPressState = 0;
 bool pressState = 0;
+bool pressRead = 0;
+bool lastPressRead = 0;
 unsigned long lastPressCheck = 0;
 #define PRESS_DEBOUNCE_TIME 50
 
 bool bombsBlinkingState = 1;
 unsigned long bombsLastBlink = 0;
-#define BOMBS_BLINK_INTERVAL  50
+#define BOMBS_BLINK_INTERVAL  30
 #define BOMBS_EXPANDING_INTERVAL 1000
 #define BOMBS_DISAPPEARING_INTERVAL 1500
 
 unsigned long randomNumber;
+
+struct direction{
+  int x;
+  int y;
+};
+byte nrOfDirections;
+                            // up     down    left    right
+direction directions[4] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+
+
+byte skullAnimation[matrixSize][matrixSize] = {
+  {0, 1, 1, 1, 1, 1, 1, 0},
+  {1, 1, 1, 1, 1, 1, 1, 1},
+  {1, 0, 0, 1, 1, 0, 0, 1},
+  {1, 0, 0, 1, 1, 0, 0, 1},
+  {0, 1, 1, 0, 0, 1, 1, 0},
+  {0, 1, 1, 1, 1, 1, 1, 0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 0, 1, 1, 1, 1, 0, 0}  
+};
+bool displayDeath = 0;
+bool displayWin = 0;
+unsigned long showDeathStart = 0;
+unsigned long showWinStart = 0;
+#define DEFAULT_ANIMATION_DISPLAY 2000
+
+byte winAnimation[matrixSize][matrixSize] = {
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 1, 1, 0, 0, 1, 1, 0},
+  {0, 1, 1, 0, 0, 1, 1, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {1, 0, 0, 0, 0, 0, 0, 1},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 0, 1, 1, 1, 1, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0}  
+};
+
 
 void setup() {
 
@@ -83,7 +124,6 @@ void setup() {
   randomSeed(analogRead(pressPin));
   generateMap();
   updateMatrix();
-
 }
 void loop() {
 
@@ -99,19 +139,22 @@ void loop() {
     matrixChanged = false; 
   }
 
-  // blink player
-  if(millis() - playerLastBlink > PLAYER_BLINK_INTERVAL){
-    playerBlink();
-    playerLastBlink = millis();
-  }
-
-  //bombs blink
-  if(sizeof(bombs) > 0){
-    if(millis() - bombsLastBlink > BOMBS_BLINK_INTERVAL){
-      bombsBlink();
-      bombsLastBlink = millis();
+  if(displayDeath == false && displayWin == false){
+    // blink player
+    if(millis() - playerLastBlink > PLAYER_BLINK_INTERVAL){
+      playerBlink();
+      playerLastBlink = millis();
     }
-  }
+
+    // bombs blink
+    if(sizeof(bombs)){
+      if(millis() - bombsLastBlink > BOMBS_BLINK_INTERVAL){
+        bombsBlink();
+        bombsLastBlink = millis();
+      }
+    }
+
+}
 
   //daca a trecut perioada de vizibilitate intregii bombe, sterge o
   for(int i = 0; i < nrOfBombs; i++){
@@ -128,16 +171,57 @@ void loop() {
   }
 
   // pune bomba noua
-  pressState = !digitalRead(pressPin);
-  if(lastPressState != pressState){
-    if(millis() - lastPressCheck > PRESS_DEBOUNCE_TIME){
-      lastPressState = pressState;
-      if(pressState == true){
-        putBomb();
+  pressRead = !digitalRead(pressPin);
+  if(millis() - lastPressCheck > PRESS_DEBOUNCE_TIME){
+    lastPressCheck = millis();
 
+      if(pressRead != pressState){
+        Serial.print("changed button state\n");
+        pressState = pressRead;
+
+        if(pressState == HIGH){
+          Serial.print("HIGH button\n");
+          if(displayDeath == true){
+            Serial.println("exist death");
+            generateMap();
+            displayDeath = false;
+            matrixChanged = true;
+          }
+          else if(displayWin == true){
+            Serial.println("exist won");
+            generateMap();
+            displayWin = false;
+            matrixChanged = true;
+          }
+
+          else{
+            putBomb();
+          }
+        }
       }
+    
+  }
+  
+  if(displayDeath == true){
+    Serial.println(millis() - showDeathStart);
+    if(millis() - showDeathStart > DEFAULT_ANIMATION_DISPLAY){
+      generateMap();
+      displayDeath = false;
+      matrixChanged = true;
+      Serial.print("Gata timpul de moarte\n");
+
     }
   }
+  if(displayWin == true){
+    if(millis() - showWinStart > DEFAULT_ANIMATION_DISPLAY){
+      generateMap();
+      displayWin = false;
+      matrixChanged = true;
+      Serial.print("Gata timpul de victorie\n");
+
+    }
+  }
+
 }
 
 void updateMatrix() {
@@ -151,26 +235,48 @@ void updateMatrix() {
         expandBomb(bombs[i]);
       }
       if(bombs[i].state == EXPANDED_BOMB){
-        deleteBomb(bombs[i]);
+        if( checkIfLost(bombs[i])){
+          displayDeath = true;
+          deleteBomb(bombs[i]);
+        }
+        else if(checkIfWon()){
+          deleteBomb(bombs[i]);
+          displayWin = true;
+        }
+        else{
+          deleteBomb(bombs[i]);
+        }
       }
     }
   }
   
+  if(displayDeath == true){
+    showSkull();
+    showDeathStart = millis();
+    Serial.println("update showDeathStart");
+  }
 
-  for (int row = 0; row < matrixSize; row++) {
-    for (int col = 0; col < matrixSize; col++) {
-      if(row == xPos && col ==yPos){
-        lc.setLed(0, xPos, yPos, playerBlinkingState);
-      }
-      else{
-        if(matrix[row][col] == WALL){
-          lc.setLed(0, row, col, 1);
+  else if(displayWin == true){
+    showWin();
+    showWinStart = millis();
+  }
+
+  if(displayDeath == false && displayWin == false){
+    for (int row = 0; row < matrixSize; row++) {
+      for (int col = 0; col < matrixSize; col++) {
+        if(row == xPos && col ==yPos){
+          lc.setLed(0, xPos, yPos, playerBlinkingState);
         }
-        else if(matrix[row][col] == EMPTY_SPACE){
-          lc.setLed(0, row, col, 0);
-        }
-        else if(matrix[row][col] == BOMB){
-          lc.setLed(0, row, col, bombsBlinkingState);
+        else{
+          if(matrix[row][col] == WALL){
+            lc.setLed(0, row, col, 1);
+          }
+          else if(matrix[row][col] == EMPTY_SPACE){
+            lc.setLed(0, row, col, 0);
+          }
+          else if(matrix[row][col] == BOMB){
+            lc.setLed(0, row, col, bombsBlinkingState);
+          }
         }
       }
     }
@@ -181,15 +287,35 @@ void updateMatrix() {
 
 
 void generateMap(){
+  xPos = defaultXPos;
+  yPos = defaultYPos;
   for(int i = 0; i < matrixSize; i++){
     for(int j = 0; j < matrixSize; j++){
       randomNumber = random(3);
         if(randomNumber > 0){
           matrix[i][j] = WALL;
         }
+        else{
+          matrix[i][j] = EMPTY_SPACE;
+        }
     }
   }
+  matrix[xPos][yPos] = EMPTY_SPACE;
+  // make sure that it is possible for the player to move from initial position
+  for(int i = 0; i < nrOfDirections; i++){
+    if(inMatrix(xPos + directions[i].x + directions[i].x ,yPos + directions[i].y + directions[i].y) &&
+    matrix[xPos + directions[i].x + directions[i].x][yPos + directions[i].y + directions[i].y] == EMPTY_SPACE &&
+    matrix[xPos + directions[i].x][yPos + directions[i].y] == EMPTY_SPACE)
+      return;
+  }
 
+  direction randomDirection = directions[random(4)];
+  while(!(inMatrix(xPos + randomDirection.x + randomDirection.x ,yPos + randomDirection.y + randomDirection.y))){
+    randomDirection = directions[random(4)];
+  }
+  matrix[xPos + randomDirection.x + randomDirection.x][yPos + randomDirection.y + randomDirection.y] = EMPTY_SPACE;
+  matrix[xPos + randomDirection.x][yPos + randomDirection.y] = EMPTY_SPACE;      
+  
 }
 
 void expandBomb(bomb currentBomb){  
@@ -200,6 +326,8 @@ void expandBomb(bomb currentBomb){
       }
     }
   }
+
+  
 
 }
 
@@ -220,6 +348,14 @@ void deleteBomb(bomb currentBomb) {
   }
 }
 
+bool checkIfLost(bomb currentBomb){
+  if(xPos >= currentBomb.x - 1  && xPos <= currentBomb.x + 1 
+  && yPos >= currentBomb.y - 1 && yPos <= currentBomb.y + 1)
+  {
+    return true;
+  }
+  return false;
+}
 
 
 // Function to read joystick input and update the position of the LED
@@ -241,12 +377,12 @@ void updatePositions() {
     }
   }
 
+  // Update yPos based on joystick movement (Y-axis)
   if (yValue > maxThreshold) {
     if (yPos < matrixSize - 1) {
       yPos++;
     } 
   }
-  // Update xPos based on joystick movement (Y-axis)
   if (yValue < minThreshold) {
     if (yPos > 0) {
       yPos--;
@@ -254,9 +390,23 @@ void updatePositions() {
   }
  // Check if the position has changed and update the matrix if necessary
   if (xPos != xLastPos || yPos != yLastPos) {
-    // matrix[xLastPos][yLastPos] = EMPTY_SPACE;
-    // matrix[xPos][yPos] = PLAYER;
-    matrixChanged = true;
+    // sa nu se miste pe diagonala
+    if (xPos != xLastPos && yPos != yLastPos){
+      if(module(DEFAULT_JOYSTICK - xValue) > module(DEFAULT_JOYSTICK - yValue)){
+        yPos = yLastPos;
+      }
+      else{
+        xPos = xLastPos;
+      } 
+    }
+    // sa nu treci prin perete
+    if(matrix[xPos][yPos] == EMPTY_SPACE){
+      matrixChanged = true;
+    }
+    else{
+      xPos = xLastPos;
+      yPos = yLastPos;
+    }
   }  
 }
 
@@ -279,6 +429,12 @@ void putBomb(){
   matrix[xPos][yPos] = BOMB;
   matrixChanged = true;
 
+  Serial.print("bomb nr: ");
+  Serial.print(nrOfBombs);
+  Serial.print(" x: ");
+  Serial.print(xPos);
+  Serial.print(" y: ");
+  Serial.println(yPos);
 }
 
 
@@ -290,4 +446,43 @@ void bombsBlink(){
 void playerBlink(){
   playerBlinkingState = !playerBlinkingState;
   matrixChanged = true;
+}
+
+
+void showSkull(){
+  for (int row = 0; row < matrixSize; row++) {
+    for (int col = 0; col < matrixSize; col++) {
+      lc.setLed(0, row, col, skullAnimation[row][col]);
+    }
+  }
+}
+
+
+void showWin(){
+  for (int row = 0; row < matrixSize; row++) {
+    for (int col = 0; col < matrixSize; col++) {
+      lc.setLed(0, row, col, winAnimation[row][col]);
+    }
+  }
+}
+
+
+bool checkIfWon(){
+  for(int i = 0; i < matrixSize; i++){
+    for(int j = 0; j < matrixSize; j++){
+      if(matrix[i][j] == WALL){
+        return false;
+      }
+    }
+  }
+  return true;
+    
+}
+
+int module(int number){
+  if(number < 0){
+    return number * (-1);
+  }
+  return number;
+
 }
