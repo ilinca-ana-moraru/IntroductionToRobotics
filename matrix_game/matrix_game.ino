@@ -119,10 +119,45 @@ bool winAnimation[MATRIX_SIZE][MATRIX_SIZE] = {
   {0, 0, 1, 1, 1, 1, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0}  
 };
+
+unsigned long startAnimationStart = 0;
+#define NR_OF_START_ANIMATION_FRAMES 2
+#define INTERVAL_BETWEEN_FRAMES 300
+unsigned long timeBetweenFrames = 0;
+#define DEFAULT_START_ANIMATION 2000
+bool currentStartAnimationFrame;
+
+bool startAnimation[NR_OF_START_ANIMATION_FRAMES][MATRIX_SIZE][MATRIX_SIZE]{
+  {
+    {0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 1, 1, 1, 1, 0, 0},
+    {0, 1, 0, 0, 0, 0, 1, 0},
+    {0, 1, 0, 1, 1, 0, 1, 0},
+    {0, 1, 0, 1, 1, 0, 1, 0},
+    {0, 1, 0, 0, 0, 0, 1, 0},
+    {0, 0, 1, 1, 1, 1, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0}
+
+  },
+  {
+    {0, 1, 1, 1, 1, 1, 1, 0},
+    {1, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 1, 1, 0, 0, 1},
+    {1, 0, 1, 0, 0, 1, 0, 1},
+    {1, 0, 1, 0, 0, 1, 0, 1},
+    {1, 0, 0, 1, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 1},
+    {0, 1, 1, 1, 1, 1, 1, 0}
+
+  }
+
+};
+
 #define PLAYING 0
 #define DEATH_ANIMATION 1
 #define WINNING_ANIMATION 2
-byte gameState = PLAYING;
+#define START_ANIMATION 3
+byte gameState;
 
 void setup() {
 
@@ -137,12 +172,13 @@ void setup() {
   lc.setIntensity(0, MATRIX_BRIGHTNESS); 
   lc.clearDisplay(0);
   randomSeed(analogRead(PRESS_PIN));
+  startGame();
   generateMap();
   updateMatrix();
 }
 void loop() {
 
-
+  Serial.print("in loop\n");
   //check if the joystick moved
   if(gameState == PLAYING){
     if (millis() - lastMoved > MOVE_INTERVAL) { 
@@ -193,21 +229,40 @@ void loop() {
  //if the time for the death animation is up, generate next map
   if(gameState == DEATH_ANIMATION){
     if(millis() - showDeathStart > DEFAULT_ANIMATION_DISPLAY){
-      generateMap();
-      gameState = PLAYING;
-      matrixChanged = true;
+      startGame();
     }
   }
 
   //if the time for the winning animation is up, generate next map
   if(gameState == WINNING_ANIMATION){
     if(millis() - showWinStart > DEFAULT_ANIMATION_DISPLAY){
+      startGame();
+    }
+  }
+
+    //if the time for the winning animation is up, generate next map
+  if(gameState == START_ANIMATION){
+    if(millis() - startAnimationStart > DEFAULT_START_ANIMATION){
       generateMap();
       gameState = PLAYING;
       matrixChanged = true;
     }
+    else{
+      if(millis() - timeBetweenFrames > INTERVAL_BETWEEN_FRAMES){
+        currentStartAnimationFrame = !currentStartAnimationFrame;
+        timeBetweenFrames = millis();
+        matrixChanged = true;
+
+      }
+    }
   }
 
+}
+
+void startGame(){
+  startAnimationStart = millis();
+  gameState = START_ANIMATION;
+  currentStartAnimationFrame = 0;
 }
 
 void updateMatrix() {
@@ -248,6 +303,9 @@ void updateMatrix() {
     showWinStart = millis();
   }
 
+  else if(gameState == START_ANIMATION){
+    showStart(currentStartAnimationFrame);
+  }
   // display visible space of the map is game is played
   if(gameState == PLAYING){
 
@@ -323,17 +381,19 @@ void buttonPressLogic(){
         if(pressState == HIGH){
           // if user wants death animation to be skipped
           if(gameState == DEATH_ANIMATION){
-            generateMap();
-            gameState = PLAYING;
-            matrixChanged = true;
+            startGame();
           }
           // if user wants winning animation to be skipped
           else if(gameState == WINNING_ANIMATION){
-            generateMap();
-            gameState = PLAYER;
-            matrixChanged = true;
+            startGame();
           }
 
+          else if(gameState == START_ANIMATION){
+            generateMap();
+            gameState = PLAYING;
+            matrixChanged = true;
+
+          }
           //if user wants to drop bomb
           else{
             putBomb();
@@ -512,6 +572,15 @@ void showWin(){
     }
   }
 }
+
+void showStart(bool frame){
+  for (int row = 0; row < MATRIX_SIZE; row++) {
+    for (int col = 0; col < MATRIX_SIZE; col++) {
+      lc.setLed(0, row, col, startAnimation[frame][row][col]);
+    }
+  }
+}
+
 
 //checks if there are walls left
 bool checkIfWon(){
