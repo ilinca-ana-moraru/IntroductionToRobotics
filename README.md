@@ -4,6 +4,20 @@ Introduction to Robotics - weekly homewoks
 This repo will contain my weekly homeworks for my Introduction to Robotics course I'm taking at the Faculty of Mathematics and Computer Science, Univeristy of Bucharest.
 For each homework, I will provide requirements, implementation details, code files, pictures and videos of the setup.
 
+<details>
+  <summary> Homework 7
+  </summary>
+  
+### Requirements
+
+Develop a small game on the 8x8 matrix. The game must have at least 3 types of elements: player (blinks slowly), bombs/bullets (blinks fast), wall (doesn’t blink). The purpose of this to get you started with your matrix project. The basic idea is that you generate walls on the map (50% - 75% of the map) and then the player moves and destroys them.
+
+### Photo
+
+![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/matrix_game/game_photo.jpeg)
+
+
+</details>
 
 <details>
 <summary> Homework 6
