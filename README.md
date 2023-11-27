@@ -16,6 +16,9 @@ Develop a small game on the 8x8 matrix. The game must have at least 3 types of e
 
 ![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/matrix_game/game_photo.jpeg)
 
+### Video
+
+https://youtu.be/xsaW_FHu68A
 
 </details>
 
