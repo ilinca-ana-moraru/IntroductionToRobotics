@@ -194,12 +194,6 @@ void setup() {
 }
 
 void loop() {
-    // Serial.print("LCD state: ");
-    // Serial.println(LCDState);
-    // Serial.print("was menu displayed: ");
-    // Serial.println(wasMenuDisplayed);
-    // Serial.print("menu level: ");
-    // Serial.println(menuLevel);
     if(LCDState == WELCOME){
       wasMenuDisplayed = false;
       if(wasLCDResetForMessageDisplay == false){

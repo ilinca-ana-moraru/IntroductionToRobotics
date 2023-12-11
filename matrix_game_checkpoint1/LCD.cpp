@@ -65,7 +65,7 @@ void stopTextLCD(){
 
 
 void setLCDForMessageDisplay(){
-  lcd.setCursor(LCD_ROWS, 0);
+  lcd.setCursor(LCD_ROWS, FIRST_COLUMN);
   lcd.autoscroll();
   wasLCDResetForMessageDisplay = true;
   currentTextPos = -1;
@@ -76,7 +76,7 @@ void displayMenu(){
   if(menuLevel == FIRST_MENU){
     switch (currentMenuPosBias){
       case FIRST_COLUMN:
-        lcd.setCursor(0,0);
+      lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
         if(currentMenuPos == FIRST_COLUMN){
           lcd.write(MENU_SELECTING_DOT);
         }
@@ -85,7 +85,7 @@ void displayMenu(){
         }
         lcd.print("Start Game");
 
-        lcd.setCursor(0,1);
+        lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
         if(currentMenuPos == SECOND_COLUMN){
           lcd.write(MENU_SELECTING_DOT);
         }
@@ -96,7 +96,7 @@ void displayMenu(){
         break;
 
       case SECOND_COLUMN:
-        lcd.setCursor(0,0);
+        lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
         if(currentMenuPos == SECOND_COLUMN){
           lcd.write(MENU_SELECTING_DOT);
         }
@@ -105,7 +105,7 @@ void displayMenu(){
         }
         lcd.print("Settings");
 
-        lcd.setCursor(0,1);
+        lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
         if(currentMenuPos == THIRD_COLUMN){
           lcd.write(MENU_SELECTING_DOT);
         }
@@ -121,7 +121,7 @@ void displayMenu(){
     }
   else if(menuLevel == SECOND_MENU){
     if(mainMenuPick == SETTINGS){
-      lcd.setCursor(0,0);
+      lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
       if(currentMenuPos == FIRST_COLUMN){
         lcd.write(MENU_SELECTING_DOT);
       }
@@ -130,7 +130,7 @@ void displayMenu(){
       }
       lcd.print("<LCD brightness");
 
-      lcd.setCursor(0,1);
+      lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
       if(currentMenuPos == SECOND_COLUMN){
         lcd.write(MENU_SELECTING_DOT);
       }
@@ -142,18 +142,18 @@ void displayMenu(){
   }
   else if(menuLevel == THIRD_MENU){
     if(secondMenuPick == LCD_BRIGHTNESS){
-      lcd.setCursor(0,0);
+      lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
       lcd.print("use up/down");
-      lcd.setCursor(0,1);
+      lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
       for(int i = 0; i < lcdScaledBrighness; i++){
         lcd.write(SELECT_BRIGHTNESS);
       }
     }
 
     else if(secondMenuPick == MATRIX_BRIGHTNESS){
-      lcd.setCursor(0,0);
+      lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
       lcd.print("use up/down");
-      lcd.setCursor(0,1);
+      lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
       for(int i = 0; i < matrixBrightness; i++){
         lcd.write(SELECT_BRIGHTNESS);
       }
@@ -229,10 +229,10 @@ void resetLCDForGame(){
 void displayAboutText(){
   if(!wasAboutTextPrinted){
 
-    lcd.setCursor(0,0);
+    lcd.setCursor(FIRST_ROW,FIRST_COLUMN);
     lcd.print("< Nuke 'em All by Ilinca. Available at:");
 
-    lcd.setCursor(0,1);
+    lcd.setCursor(FIRST_ROW,SECOND_COLUMN);
     lcd.print("github.com/ilinca-ana-moraru");
 
     wasAboutTextPrinted = true;
@@ -254,7 +254,7 @@ void checkForBrightnessChange(){
   if(secondMenuPick == MATRIX_BRIGHTNESS){
     if(xValue > MAX_THRESHOLD){
       if(millis() - lastBrightnessChange > TIME_BETWEEN_BRIGHTNESS_CHANGE){
-        if(matrixBrightness > 1){
+        if(matrixBrightness > MIN_SCALED_BRIGHTNESS){
           lastBrightnessChange = millis();
           matrixBrightness--;
           EEPROM[MATRIX_BRIGHTNESS_STORRING_SPACE] = matrixBrightness; 
@@ -266,7 +266,7 @@ void checkForBrightnessChange(){
 
     if(xValue < MIN_THRESHOLD){
       if(millis() - lastBrightnessChange > TIME_BETWEEN_BRIGHTNESS_CHANGE){
-        if(matrixBrightness < 16){
+        if(matrixBrightness < MAX_SCALED_BRIGHTNESS){
           lastBrightnessChange = millis();
           matrixBrightness++;
           EEPROM[MATRIX_BRIGHTNESS_STORRING_SPACE] = matrixBrightness; 
@@ -281,12 +281,11 @@ void checkForBrightnessChange(){
   else if(secondMenuPick == LCD_BRIGHTNESS){
     if(xValue > MAX_THRESHOLD){
       if(millis() - lastBrightnessChange > TIME_BETWEEN_BRIGHTNESS_CHANGE){
-        if(lcdScaledBrighness > 1){
+        if(lcdScaledBrighness > MIN_SCALED_BRIGHTNESS){
           lastBrightnessChange = millis();
           lcdScaledBrighness--;
-          Serial.println("--");
           wasMenuDisplayed = false;
-          lcdBrightness = map(lcdScaledBrighness, 0, 16, 0, 255);
+          lcdBrightness = map(lcdScaledBrighness, MIN_SCALED_BRIGHTNESS, MAX_SCALED_BRIGHTNESS, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
           EEPROM[LCD_BRIGHTNESS_STORRING_SPACE] = lcdBrightness;
           analogWrite(LCD_BRIGHTNESS_PIN, lcdBrightness);
         }
@@ -295,12 +294,11 @@ void checkForBrightnessChange(){
 
     if(xValue < MIN_THRESHOLD){
       if(millis() - lastBrightnessChange > TIME_BETWEEN_BRIGHTNESS_CHANGE){
-        if(lcdScaledBrighness < 16){
+        if(lcdScaledBrighness < MAX_SCALED_BRIGHTNESS){
           lastBrightnessChange = millis();
           lcdScaledBrighness++;
-          Serial.println("++");
           wasMenuDisplayed = false;
-          lcdBrightness = map(lcdScaledBrighness, 0, 16, 0, 255);
+          lcdBrightness = map(lcdScaledBrighness, MIN_SCALED_BRIGHTNESS, MAX_SCALED_BRIGHTNESS, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
           EEPROM[LCD_BRIGHTNESS_STORRING_SPACE] = lcdBrightness;
           analogWrite(LCD_BRIGHTNESS_PIN, lcdBrightness);
         }
