@@ -33,12 +33,11 @@ Add the following functionality for this checkpoint:
 
 ### Photo
 
-![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/matrix_game/game_photo.jpeg)
+![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/matrix_game_checkpoint1/matrix_game_LCD.jpeg)
 
 ### Video
 
-https://youtu.be/xsaW_FHu68A
-
+https://youtu.be/egN15sqzW8s?si=z_I5eAMAOQrVb5-Q
 </details>
 
 
