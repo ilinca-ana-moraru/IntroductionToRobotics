@@ -23,8 +23,6 @@ struct direction{
 #define X_PIN A0
 #define Y_PIN  A1
 
-#define MATRIX_BRIGHTNESS  15
-
 #define EMPTY_SPACE 0
 #define PLAYER 1
 #define BOMB 2
@@ -41,8 +39,9 @@ struct direction{
 
 #define MATRIX_SIZE 8 
 #define MAP_SIZE 16
+#define HEIGHT_OF_CUSTOM_CHARS 8
 
-
+#define SELECT_BRIGHTNESS 2
 #define PLAYER_BLINK_INTERVAL  150
 
 #define PRESS_DEBOUNCE_TIME 50
@@ -65,7 +64,6 @@ struct direction{
 #define WINNING_ANIMATION 2
 #define START_ANIMATION 3
 #define MENU 4
-
 
 void updateMatrix();
 

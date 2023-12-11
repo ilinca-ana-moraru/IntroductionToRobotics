@@ -15,10 +15,26 @@
 #define SECOND_SUBMENU 14
 #define TIME_BETWEEN_LCD_LETTERS 300
 
-#define MENU_COLS 3
+#define MAIN_MENU_COLS 3
+#define SETTINGS_MENU_COLS 2
 #define MENU_SELECTING_DOT 1
 #define MENU_MOVE_INTERVAL 300
 
+#define SETTINGS 15
+#define ABOUT 16
+#define LCD_BRIGHTNESS 17
+#define MATRIX_BRIGHTNESS 18
+#define TIME_BETWEEN_SCROLL 700
+#define TIME_BETWEEN_BRIGHTNESS_CHANGE 100
+#define LCD_BRIGHTNESS_PIN 3
+
+#define FIRST_MENU 20
+#define SECOND_MENU 21
+#define THIRD_MENU 22
+
+#define FIRST_COLUMN 0
+#define SECOND_COLUMN 1
+#define THIRD_COLUMN 2
 void showTextLCD(char* text);
 
 void stopTextLCD();
@@ -29,8 +45,13 @@ void displayMenu();
 
 void changeMenu();
 
-void selectMainMenu();
+void selectMenu();
 
 void resetLCDForGame();
+
+void displayAboutText();
+
+void checkForBrightnessChange();
+
 
 #endif

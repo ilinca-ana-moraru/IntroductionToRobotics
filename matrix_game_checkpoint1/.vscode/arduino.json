@@ -2,5 +2,5 @@
     "board": "arduino:avr:uno",
     "programmer": "avrisp",
     "port": "COM3",
-    "sketch": "matrix_game.ino"
+    "sketch": "matrix_game_checkpoint1.ino"
 }

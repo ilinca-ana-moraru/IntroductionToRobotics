@@ -13,7 +13,6 @@ const byte d7 = 4;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-
 char* welcomeText = {"Welcome!!!"};
 char* endGameText = {"END GAME"};
 byte LCDState; //WELCOME, END_GAME, PLAYING
@@ -54,17 +53,17 @@ byte matrix[MAP_SIZE][MAP_SIZE] = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 ;
 
-bool playerBlinkingState = 1;
+bool playerBlinkingState = true;
 unsigned long playerLastBlink = 0;
 
 bomb* bombs;
 
 byte nrOfBombs = 0;
-bool pressState = 0;
-bool pressRead = 0;
+bool pressState = false;
+bool pressRead = false;
 unsigned long lastPressCheck = 0;
 
-bool bombsBlinkingState = 1;
+bool bombsBlinkingState = true;
 unsigned long bombsLastBlink = 0;
 unsigned long randomNumber;
 
@@ -130,12 +129,12 @@ bool startAnimation[NR_OF_START_ANIMATION_FRAMES][MATRIX_SIZE][MATRIX_SIZE]{
 
 byte gameState;
 
-byte wasLCDResetForMessageDisplay = 0;
+byte wasLCDResetForMessageDisplay = false;
 
-byte currentMenuPosBias = 0;
-byte currentMenuPos = 0;
-bool wasMenuDisplayed = 0;
-byte menuSelectingDot[8] = {
+byte currentMenuPosBias = FIRST_COLUMN;
+byte currentMenuPos = FIRST_COLUMN;
+bool wasMenuDisplayed = false;
+byte menuSelectingDot[HEIGHT_OF_CUSTOM_CHARS] = {
   0b00000,
   0b00100,
   0b01110,
@@ -145,9 +144,27 @@ byte menuSelectingDot[8] = {
   0b00000,
   0b00000
 };
-bool joyMoved = 0;
-byte menuLevel = 1;
+byte selectBrightness[HEIGHT_OF_CUSTOM_CHARS] = {
+  0b11111,
+  0b11111,
+  0b11111,
+  0b11111,
+  0b11111,
+  0b11111,
+  0b11111,
+  0b11111
+};
 
+
+bool joyMoved = false;
+byte menuLevel = FIRST_MENU;
+byte mainMenuPick = FIRST_COLUMN;
+bool wasAboutTextPrinted = false;
+byte secondMenuPick = FIRST_COLUMN;
+
+byte matrixBrightness = 15;
+byte lcdBrightness = 90;
+byte lcdScaledBrighness = map(lcdBrightness,0,255,0,16);
 void setup() {
   lcd.begin(LCD_ROWS, LCD_COLS);
   lcd.setCursor(LCD_ROWS, 0);
@@ -160,11 +177,14 @@ void setup() {
   pinMode(DIN_PIN, OUTPUT);
   pinMode(CLOCK_PIN, OUTPUT);
   pinMode(LOAD_PIN, OUTPUT);
+  pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
+  analogWrite(LCD_BRIGHTNESS_PIN, lcdBrightness);
   Serial.begin(115200);
   lc.shutdown(0, false); 
-  lc.setIntensity(0, MATRIX_BRIGHTNESS); 
+  lc.setIntensity(0, matrixBrightness); 
   lc.clearDisplay(0);
   lcd.createChar(MENU_SELECTING_DOT, menuSelectingDot);
+  lcd.createChar(SELECT_BRIGHTNESS, selectBrightness);
   randomSeed(analogRead(PRESS_PIN));
   startGameAnimation();
   generateMap();
@@ -176,34 +196,52 @@ void loop() {
     Serial.println(LCDState);
     Serial.print("was menu displayed: ");
     Serial.println(wasMenuDisplayed);
-
+    Serial.print("menu level: ");
+    Serial.println(menuLevel);
     if(LCDState == WELCOME){
-      wasMenuDisplayed = 0;
-      if(wasLCDResetForMessageDisplay == 0){
+      wasMenuDisplayed = false;
+      if(wasLCDResetForMessageDisplay == false){
         setLCDForMessageDisplay();
       }
       showTextLCD(welcomeText);
     }
 
     if(LCDState == END_GAME){
-      wasMenuDisplayed = 0;
-      if(wasLCDResetForMessageDisplay == 0){
+      wasMenuDisplayed = false;
+      if(wasLCDResetForMessageDisplay == false){
         setLCDForMessageDisplay();
       }
       showTextLCD(endGameText);
     }
 
+
+
     if(LCDState == MENU){
-      if(wasMenuDisplayed == 0){
-        lcd.clear();
-        lcd.noAutoscroll();
-        displayMenu();
+      if(menuLevel == SECOND_MENU && mainMenuPick == ABOUT){
+        displayAboutText();
+        changeMenu();
       }
-      changeMenu();
-    }
+      else{
+        if(menuLevel == THIRD_MENU){
+        checkForBrightnessChange();
+      }
+
+        if(wasMenuDisplayed == false){
+          lcd.clear();
+          lcd.noAutoscroll();        
+          displayMenu();
+        }
+        changeMenu();
+      }
+   }
 
   if(gameState == MENU){
-    showMatrixMenu();
+    if(menuLevel == THIRD_MENU && secondMenuPick == MATRIX_BRIGHTNESS){
+      showFrameAnimation(winAnimation);
+    }
+    else{
+      showMatrixMenu();
+    }
   }
 
   //check if the joystick moved
@@ -255,7 +293,7 @@ void loop() {
  //if the time for the death animation is up, generate next map
   if(gameState == DEATH_ANIMATION){
     if(millis() - showDeathStart > DEFAULT_ANIMATION_DISPLAY && LCDState != END_GAME){
-      // stopTextLCD();
+      menuLevel = FIRST_MENU;
       gameState = MENU;
       LCDState == MENU;
 
@@ -274,6 +312,7 @@ void loop() {
     if(millis() - AnimationStart > DEFAULT_START_ANIMATION && LCDState != WELCOME){
       // aici o sa fie meniu
       // startGame();
+      menuLevel = FIRST_MENU;
       gameState = MENU;
       LCDState == MENU;
     }
@@ -320,9 +359,10 @@ void buttonPressLogic(){
           // if user wants death animation to be skipped
           if(gameState == DEATH_ANIMATION){
             stopTextLCD();
+            menuLevel = FIRST_MENU;
             gameState = MENU;
             LCDState = MENU;
-            wasMenuDisplayed = 0;
+            wasMenuDisplayed = false;
             return;
           }
           // if user wants winning animation to be skipped
@@ -332,9 +372,10 @@ void buttonPressLogic(){
 
           if(gameState == START_ANIMATION || LCDState == WELCOME){
             stopTextLCD();
+            menuLevel = FIRST_MENU;
             gameState = MENU;
             LCDState = MENU;
-            wasMenuDisplayed = 0;
+            wasMenuDisplayed = false;
             return;
           }
 
@@ -344,8 +385,9 @@ void buttonPressLogic(){
             putBomb();
           }
 
-          if(LCDState == MAIN_MENU){
-            selectMainMenu();
+          if(LCDState == MENU){
+            wasMenuDisplayed = false;
+            selectMenu();
           }
 
           
@@ -357,15 +399,47 @@ void buttonPressLogic(){
 }
 
 
+void selectMenu(){
+  if(menuLevel == FIRST_MENU){
+  switch (currentMenuPos){
+    case FIRST_COLUMN:
+      startGame();
+      break;
+      
+    case SECOND_COLUMN:
+      menuLevel = SECOND_MENU;
+      currentMenuPos = FIRST_COLUMN;
+      currentMenuPosBias = FIRST_COLUMN;
+      mainMenuPick = SETTINGS;
+      break;
 
-void selectMainMenu(){
-  switch (currentMenuPos)
-  {
-  case 0:
-    startGame();
-    break;
-  
-  default:
-    break;
+    case THIRD_COLUMN:
+      menuLevel = SECOND_MENU;
+      mainMenuPick = ABOUT;
+      wasAboutTextPrinted = false;
+      break;
+
+    default:
+      break;
+    }
+  }
+  else if(menuLevel == SECOND_MENU){
+    if(mainMenuPick == SETTINGS){ 
+
+      switch (currentMenuPos){
+        case FIRST_COLUMN:
+          menuLevel = THIRD_MENU;
+          secondMenuPick = LCD_BRIGHTNESS;
+          break;
+
+        case SECOND_COLUMN:
+          menuLevel = THIRD_MENU;
+          secondMenuPick = MATRIX_BRIGHTNESS;
+          break;
+
+        default:
+          break;
+      }
+    }
   }
 }
