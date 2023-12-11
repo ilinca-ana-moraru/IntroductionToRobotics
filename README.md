@@ -5,6 +5,44 @@ This repo will contain my weekly homeworks for my Introduction to Robotics cours
 For each homework, I will provide requirements, implementation details, code files, pictures and videos of the setup.
 
 <details>
+  <summary> Homework 8
+  </summary>
+  
+### Requirements
+
+Add the following functionality for this checkpoint:
+1. Intro Message - When powering up the project, a greeting message should be shown for a few moments.
+
+2. Menu:
+
+    2.1. Start game, starts the initial level of
+
+    2.2. Settings
+
+    2.2.1. LCD brightness control. Save value to EEPROM and load it upon system start.
+
+    2.2.2. Matrix brightness control. Save value to EEPROM and load it upon system start.
+
+    2.3. About: should include details about the creator(s) of the game. At least game name, author and github link or user
+
+3. End Message - When the game ends, add a message. Wait for a promt from the user before returning to main menu
+
+4. During gameplay:
+  4.1. Show relevant details, that are dynamic.
+  4.2 Implement an end game / level functionality. You current game should end. Upon ending, it should display the aforementioned message, wait for user prompt and then return to the main menu again.
+
+### Photo
+
+![photo](https://github.com/ilinca-ana-moraru/IntroductionToRobotics/blob/main/matrix_game/game_photo.jpeg)
+
+### Video
+
+https://youtu.be/xsaW_FHu68A
+
+</details>
+
+
+<details>
   <summary> Homework 7
   </summary>
   
