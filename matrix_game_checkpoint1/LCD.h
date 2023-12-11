@@ -3,6 +3,7 @@
 
 #include "LEDmatrix.h"
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
 #define LCD_ROWS 16
 #define LCD_COLS 2
@@ -35,6 +36,9 @@
 #define FIRST_COLUMN 0
 #define SECOND_COLUMN 1
 #define THIRD_COLUMN 2
+
+#define MATRIX_BRIGHTNESS_STORRING_SPACE 120
+#define LCD_BRIGHTNESS_STORRING_SPACE 160
 void showTextLCD(char* text);
 
 void stopTextLCD();

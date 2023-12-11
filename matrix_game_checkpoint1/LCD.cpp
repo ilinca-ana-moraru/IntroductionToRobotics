@@ -257,6 +257,7 @@ void checkForBrightnessChange(){
         if(matrixBrightness > 1){
           lastBrightnessChange = millis();
           matrixBrightness--;
+          EEPROM[MATRIX_BRIGHTNESS_STORRING_SPACE] = matrixBrightness; 
           wasMenuDisplayed = false;
           lc.setIntensity(0, matrixBrightness); 
         }
@@ -268,6 +269,7 @@ void checkForBrightnessChange(){
         if(matrixBrightness < 16){
           lastBrightnessChange = millis();
           matrixBrightness++;
+          EEPROM[MATRIX_BRIGHTNESS_STORRING_SPACE] = matrixBrightness; 
           wasMenuDisplayed = false;
           lc.setIntensity(0, matrixBrightness); 
         }
@@ -282,8 +284,10 @@ void checkForBrightnessChange(){
         if(lcdScaledBrighness > 1){
           lastBrightnessChange = millis();
           lcdScaledBrighness--;
+          Serial.println("--");
           wasMenuDisplayed = false;
           lcdBrightness = map(lcdScaledBrighness, 0, 16, 0, 255);
+          EEPROM[LCD_BRIGHTNESS_STORRING_SPACE] = lcdBrightness;
           analogWrite(LCD_BRIGHTNESS_PIN, lcdBrightness);
         }
       }
@@ -294,8 +298,10 @@ void checkForBrightnessChange(){
         if(lcdScaledBrighness < 16){
           lastBrightnessChange = millis();
           lcdScaledBrighness++;
+          Serial.println("++");
           wasMenuDisplayed = false;
           lcdBrightness = map(lcdScaledBrighness, 0, 16, 0, 255);
+          EEPROM[LCD_BRIGHTNESS_STORRING_SPACE] = lcdBrightness;
           analogWrite(LCD_BRIGHTNESS_PIN, lcdBrightness);
         }
       }

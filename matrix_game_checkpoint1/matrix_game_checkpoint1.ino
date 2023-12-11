@@ -3,6 +3,7 @@
 
 #include "LedControl.h"
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
 const byte rs = 9;
 const byte en = 8;
@@ -162,9 +163,10 @@ byte mainMenuPick = FIRST_COLUMN;
 bool wasAboutTextPrinted = false;
 byte secondMenuPick = FIRST_COLUMN;
 
-byte matrixBrightness = 15;
-byte lcdBrightness = 90;
-byte lcdScaledBrighness = map(lcdBrightness,0,255,0,16);
+byte matrixBrightness = EEPROM[MATRIX_BRIGHTNESS_STORRING_SPACE];
+byte lcdBrightness = EEPROM[LCD_BRIGHTNESS_STORRING_SPACE];
+byte lcdScaledBrighness = map(lcdBrightness,0,255,0,16) + 1;
+
 void setup() {
   lcd.begin(LCD_ROWS, LCD_COLS);
   lcd.setCursor(LCD_ROWS, 0);
@@ -192,12 +194,12 @@ void setup() {
 }
 
 void loop() {
-    Serial.print("LCD state: ");
-    Serial.println(LCDState);
-    Serial.print("was menu displayed: ");
-    Serial.println(wasMenuDisplayed);
-    Serial.print("menu level: ");
-    Serial.println(menuLevel);
+    // Serial.print("LCD state: ");
+    // Serial.println(LCDState);
+    // Serial.print("was menu displayed: ");
+    // Serial.println(wasMenuDisplayed);
+    // Serial.print("menu level: ");
+    // Serial.println(menuLevel);
     if(LCDState == WELCOME){
       wasMenuDisplayed = false;
       if(wasLCDResetForMessageDisplay == false){
